@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PrivaPilot ML Engine (Offscreen)</title>
+  <!--
+    This is a chrome.offscreen document — invisible, extension-owned.
+    Cross-origin isolation is provided by manifest-level COEP/COOP keys,
+    NOT by meta tags (COOP cannot be delivered via meta tag per spec).
+    This enables SharedArrayBuffer for threaded ONNX WASM inference.
+  -->
+</head>
+<body>
+  <script src="suppress_warnings.js"></script>
+  <script src="../content/pii_rules.js"></script>
+  <script src="../libs/ort.min.js"></script>
+  <script src="../libs/tesseract.min.js"></script>
+  <script src="ml_engine.js"></script>
+</body>
+</html>

@@ -1,0 +1,3808 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Click</title>
+    <link rel="stylesheet" href="libs/fontawesome/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ── CUSTOM SCROLLBARS (Sleek dark-mode scrollbars across Electron) ─── */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+
+        :root {
+            --bg-primary: rgba(22, 22, 26, 0.96);
+            --bg-secondary: rgba(30, 30, 36, 0.95);
+            --bg-tertiary: rgba(38, 38, 44, 0.9);
+            --bg-hover: rgba(50, 50, 58, 0.8);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-medium: rgba(255, 255, 255, 0.1);
+            --text-primary: rgba(255, 255, 255, 0.88);
+            --text-secondary: rgba(255, 255, 255, 0.55);
+            --text-muted: rgba(255, 255, 255, 0.3);
+            --accent: #4fc3f7;
+            --accent-dim: rgba(79, 195, 247, 0.15);
+            --accent-glow: rgba(79, 195, 247, 0.08);
+            --user-bubble: rgba(79, 195, 247, 0.12);
+            --agent-bubble: rgba(255, 255, 255, 0.04);
+            --success: #66bb6a;
+            --warning: #ffa726;
+            --error: #ef5350;
+            --pill-radius: 100px;
+            --panel-radius: 18px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --sidebar-collapsed-width: 42px;
+            --sidebar-width: 175px;
+        }
+
+        html, body {
+            background: transparent !important;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            font-family: var(--font);
+            -webkit-app-region: no-drag;
+            margin: 0;
+            padding: 0;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+        }
+
+        .dynamic-pill, .panel-container, .settings-overlay, input, button, select, textarea {
+            -webkit-app-region: no-drag;
+        }
+
+        .app-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding-top: 4px;
+        }
+
+        /* ── TOP ROW: pill + drag handle ──────────────────────── */
+        .pill-row {
+            display: flex;
+            align-items: flex-start;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+
+        /* Wrapper that groups pill + panel (excluding drag handle) */
+        .pill-panel-group {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            width: 220px; /* collapsed width */
+            transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .pill-panel-group.expanded {
+            width: 410px; /* expanded width — FIXED so content can't push it */
+        }
+
+        /* ── PILL ─────────────────────────────────────────────── */
+        .dynamic-pill {
+            height: 36px;
+            background: var(--bg-primary);
+            backdrop-filter: blur(30px);
+            border-radius: var(--pill-radius);
+            border: 1px solid var(--border-medium);
+            animation: breathe-glow 4s infinite ease-in-out;
+            display: flex; /* flex, not inline-flex — stays within group width */
+            align-items: center;
+            padding: 0 10px 0 5px;
+            gap: 6px;
+            transition: background 0.35s, border-color 0.35s;
+            width: 100%; /* fill the fixed-width group */
+        }
+
+        @keyframes breathe-glow {
+            0%, 100% { box-shadow: 0 0 5px var(--accent-glow); border-color: rgba(79,195,247,0.08); }
+            50% { box-shadow: 0 0 10px rgba(79,195,247,0.1); border-color: rgba(79,195,247,0.18); }
+        }
+
+        .dynamic-pill:hover { border-color: rgba(79,195,247,0.25); }
+        .dynamic-pill.expanded { background: var(--bg-secondary); border-color: rgba(79,195,247,0.15); }
+
+        .pill-center { flex: 1; min-width: 0; } /* center takes remaining space */
+
+        .pill-section { z-index: 10; display: flex; align-items: center; height: 100%; }
+        .pill-left { gap: 8px; padding-left: 2px; flex-shrink: 0; }
+        .pill-right { flex-shrink: 0; gap: 2px; }
+
+        .input-wrapper {
+            width: 100%; /* fill available center space */
+            display: flex; align-items: center;
+        }
+
+        input#command-input {
+            width: 100%; background: transparent; border: none; outline: none;
+            color: var(--text-primary); font-size: 13px; font-family: var(--font);
+        }
+        input#command-input::placeholder { color: var(--text-muted); }
+
+        .icon-btn, .mic-btn {
+            background: transparent; border: none; color: var(--text-muted);
+            font-size: 12px; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+        }
+        .mic-btn { background: rgba(255,255,255,0.04); color: var(--error); }
+        .mic-btn:hover { background: rgba(255,255,255,0.08); color: #ff7777; }
+        .mic-btn.active { color: #fff; background: var(--error); box-shadow: 0 0 12px rgba(239,83,80,0.3); }
+        .icon-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+        /* Panel toggle — visible on hover/expanded */
+        .panel-toggle { opacity: 0; transition: opacity 0.3s ease; }
+        .dynamic-pill.expanded .panel-toggle, .dynamic-pill:hover .panel-toggle { opacity: 1; }
+        .panel-toggle i { transition: transform 0.3s ease; }
+        .panel-toggle.open i { transform: rotate(180deg); }
+
+        /* Stop button state */
+        .action-btn.stop-mode { color: var(--error); }
+        .action-btn.stop-mode:hover { background: rgba(239,83,80,0.15); }
+
+        /* Drag Handle */
+        .drag-handle {
+            width: 30px; height: 30px;
+            background: var(--bg-primary); border: 1px solid var(--border-subtle);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 10px; cursor: grab;
+            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+            margin-left: 8px; flex-shrink: 0;
+            user-select: none; -webkit-user-select: none;
+            margin-top: 3px;
+            -webkit-app-region: no-drag;
+        }
+        .drag-handle i { pointer-events: none; }
+        .drag-handle:hover { background: var(--accent-dim); color: var(--accent); border-color: rgba(79,195,247,0.3); }
+        .drag-handle:active, .drag-handle.dragging { cursor: grabbing; background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+        /* ── EXPANDABLE PANEL ─────────────────────────────────── */
+        .panel-container {
+            width: 100%; /* fill the fixed-width group */
+            max-height: 0; opacity: 0; overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.25,0.8,0.25,1),
+                        opacity 0.3s ease, margin-top 0.4s cubic-bezier(0.25,0.8,0.25,1);
+            display: flex; flex-direction: column; margin-top: 0;
+            pointer-events: none;
+        }
+        .panel-container.open {
+            max-height: 500px; opacity: 1; margin-top: 6px; pointer-events: all;
+        }
+
+        .panel {
+            width: 100%;
+            height: 300px; /* FIXED height — chat scrolls inside */
+            background: var(--bg-primary); border: 1px solid var(--border-subtle);
+            border-radius: var(--panel-radius); display: flex; flex-direction: row;
+            overflow: hidden; backdrop-filter: blur(40px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 1px rgba(255,255,255,0.05);
+            position: relative;
+        }
+
+        /* ── SIDEBAR (Collapsible Rail) ────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-collapsed-width);
+            height: 100%;
+            overflow: hidden;
+            border-right: 1px solid var(--border-subtle);
+            background: rgba(18, 18, 22, 0.98);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: width 0.3s cubic-bezier(0.25,0.8,0.25,1);
+            position: relative;
+            z-index: 5;
+            box-sizing: border-box;
+        }
+        .sidebar.open {
+            width: var(--sidebar-width);
+        }
+
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 6px 8px 6px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s ease;
+            width: 100%;
+        }
+        .sidebar.open .sidebar-top {
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .sidebar-item-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: rgba(255, 255, 255, 0.65);
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            transition: background 0.15s ease, color 0.15s ease, width 0.25s cubic-bezier(0.25,0.8,0.25,1), border-color 0.15s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            padding: 0;
+        }
+        .sidebar-item-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .sidebar-item-btn.active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        .sidebar.open .sidebar-item-btn {
+            width: 100%;
+        }
+
+        .sidebar-item-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+        .sidebar-svg {
+            width: 14px;
+            height: 14px;
+            display: block;
+            stroke: currentColor;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item-text {
+            font-size: 11.5px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+            padding-right: 8px;
+        }
+        .sidebar.open .sidebar-item-text {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .sidebar-item-btn:hover .sidebar-item-text {
+            color: #ffffff;
+        }
+
+        .sidebar.open .sidebar-item-btn.new-chat-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .sidebar.open .sidebar-item-btn.new-chat-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .sidebar-chats {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 6px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.06) transparent;
+        }
+        .sidebar.open .sidebar-chats {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .sidebar-chats::-webkit-scrollbar { width: 3px; }
+        .sidebar-chats::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+        .chat-item {
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 3px;
+            transition: background 0.15s ease, color 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            width: 100%;
+            box-sizing: border-box;
+            color: rgba(255, 255, 255, 0.65);
+            border: 1px solid transparent;
+        }
+        .chat-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .chat-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+        }
+
+        .chat-item-icon {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            flex-shrink: 0;
+        }
+        .chat-item.active .chat-item-icon { color: #ffffff; }
+
+        .chat-item-text {
+            font-size: 11px;
+            color: inherit;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .chat-item-delete {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: transparent;
+            font-size: 10px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .chat-item:hover .chat-item-delete { color: rgba(255, 255, 255, 0.4); }
+        .chat-item-delete:hover { color: var(--error) !important; background: rgba(239,83,80,0.1); }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 8px 6px 10px 6px;
+            flex-shrink: 0;
+            margin-top: auto;
+            box-sizing: border-box;
+            border-top: 1px solid transparent;
+            transition: border-color 0.2s ease;
+            width: 100%;
+        }
+        .sidebar.open .sidebar-bottom {
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* ── MAIN CHAT AREA (No top bar line) ──────────────────── */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.08) transparent;
+        }
+        .chat-area::-webkit-scrollbar { width: 4px; }
+        .chat-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .chat-empty {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 100%; min-height: 140px;
+            color: var(--text-muted); font-size: 12px; gap: 8px;
+        }
+        .chat-empty i { font-size: 24px; opacity: 0.3; }
+
+        .msg {
+            display: flex;
+            flex-direction: column;
+            max-width: 82%;
+            animation: msgIn 0.3s ease;
+        }
+        .msg.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+        .msg.agent {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+        @keyframes msgIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+        .msg-bubble {
+            padding: 8px 13px;
+            border-radius: 14px;
+            font-size: 12.5px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            width: fit-content;
+            max-width: 100%;
+        }
+        .msg.user .msg-bubble {
+            background: var(--user-bubble);
+            border: 1px solid rgba(79, 195, 247, 0.18);
+            border-bottom-right-radius: 4px;
+        }
+        .msg.agent .msg-bubble {
+            background: var(--agent-bubble);
+            border: 1px solid var(--border-subtle);
+            border-bottom-left-radius: 4px;
+        }
+
+        .tool-call {
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 10px; background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 9999px;
+            font-size: 11px; color: rgba(255, 255, 255, 0.7);
+            max-width: fit-content;
+        }
+
+        /* ── CAPTURED IMAGE ROW (Pill + compact thumbnail directly adjacent on right) ─── */
+        .step-row {
+            display: inline-flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: flex-start;
+            width: fit-content;
+            max-width: 100%;
+            margin: 5px 0 2px 0;
+            padding: 0;
+            box-sizing: border-box;
+            gap: 8px;
+        }
+
+        .step-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85);
+            letter-spacing: 0.2px;
+            user-select: none;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .step-pill-meta {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 10px;
+            font-weight: 400;
+        }
+
+        .step-thumb-wrap {
+            position: relative;
+            display: inline-block;
+            vertical-align: middle;
+            width: 48px;
+            height: 28px;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #09090b;
+            cursor: pointer;
+            cursor: zoom-in;
+            flex-shrink: 0;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            outline: none;
+        }
+
+        .step-thumb-wrap:hover, .step-thumb-wrap:focus-visible {
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .step-thumb-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            display: block;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .step-thumb-wrap:hover .step-thumb-img {
+            opacity: 0.82;
+        }
+
+        /* ── AGENT THOUGHT & ACTION CAPSULE ─────── */
+        .thought-bubble {
+            font-size: 12px;
+            line-height: 1.48;
+            color: rgba(255, 255, 255, 0.65);
+            padding: 4px 6px;
+            margin: 2px 0 5px 0;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .action-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 9999px;
+            font-size: 11.5px;
+            color: rgba(255, 255, 255, 0.88);
+            margin: 2px 0 6px 0;
+            max-width: fit-content;
+            transition: all 0.18s ease;
+            user-select: none;
+            cursor: default;
+        }
+
+        .action-pill:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .action-pill-icon {
+            font-size: 10.5px;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .action-pill-text {
+            font-weight: 450;
+            letter-spacing: 0.1px;
+        }
+
+        .action-pill-status {
+            font-size: 9.5px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-left: 2px;
+        }
+
+        .action-pill-status.error {
+            color: rgba(248, 113, 113, 0.85);
+        }
+
+        /* ── ASK USER INTERACTIVE CARD (Minimalist Neutral Theme) ── */
+        .ask-user-card {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            padding: 9px 11px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            margin: 4px 0 8px 0;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .ask-user-card.answered {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.06);
+            gap: 4px;
+            padding: 7px 10px;
+        }
+
+        .ask-user-card.expired {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.05);
+            opacity: 0.7;
+        }
+
+        .ask-user-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .ask-user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.45);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ask-user-badge i {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .ask-user-timer {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            color: rgba(255, 255, 255, 0.45);
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .ask-user-timer.urgent {
+            color: rgba(248, 113, 113, 0.85);
+        }
+
+        .ask-user-question {
+            font-size: 12px;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.88);
+            font-weight: 400;
+            word-break: break-word;
+            margin: 1px 0 3px 0;
+        }
+
+        .ask-user-options {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .ask-option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 5px 8px;
+            box-sizing: border-box;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 11.5px;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+            user-select: none;
+            outline: none;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .ask-option-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+
+        .ask-option-row:active {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .ask-option-left {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ask-option-left i {
+            font-size: 9.5px;
+            color: rgba(255, 255, 255, 0.35);
+            flex-shrink: 0;
+            transition: color 0.15s ease;
+        }
+
+        .ask-option-row:hover .ask-option-left i {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .ask-option-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* "Others" row transformed into typing bar */
+        .ask-option-row.ask-other-row.expanded {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3px 6px 3px 8px;
+            cursor: default;
+        }
+
+        .ask-other-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 11.5px;
+            font-family: inherit;
+            min-width: 0;
+        }
+
+        .ask-other-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .ask-other-send-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.45);
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10.5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .ask-other-send-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Answered state */
+        .ask-answered-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            color: rgba(255, 255, 255, 0.85);
+            padding: 2px 0;
+        }
+
+        .ask-answered-label {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 11px;
+        }
+
+        .ask-answered-value {
+            color: rgba(255, 255, 255, 0.88);
+            font-weight: 500;
+        }
+
+        .ask-expired-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* ── WORKED FOR (COLLAPSIBLE ACTIVITY DISCLOSURE) ─────── */
+        details.activity-box {
+            margin: 4px 0;
+            width: 100%;
+            max-width: 100%;
+            border: none;
+            background: transparent;
+            outline: none;
+        }
+
+        summary.activity-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+            user-select: none;
+            font-size: 11.5px;
+            color: rgba(255, 255, 255, 0.65);
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            outline: none;
+            list-style: none;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        summary.activity-header::-webkit-details-marker {
+            display: none;
+        }
+
+        summary.activity-header:hover, summary.activity-header:focus-visible {
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .activity-chevron {
+            font-size: 9.5px;
+            color: rgba(255, 255, 255, 0.4);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 12px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        details.activity-box[open] > summary .activity-chevron {
+            transform: rotate(90deg);
+        }
+
+        .activity-title {
+            font-weight: 500;
+            letter-spacing: 0.15px;
+        }
+
+        .activity-count {
+            font-size: 10.5px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-left: auto;
+            font-weight: 400;
+        }
+
+        .activity-body {
+            margin: 3px 0 6px 14px;
+            padding: 4px 0 4px 14px;
+            border-left: 1.5px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* ── SCREENSHOT LIGHTBOX MODAL (Neutral Fallback) ─────── */
+        .screenshot-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(9, 9, 11, 0.96);
+            backdrop-filter: blur(20px);
+            z-index: 250;
+            flex-direction: column;
+            border-radius: 0 var(--panel-radius) var(--panel-radius) 0;
+            overflow: hidden;
+            animation: modalPopIn 0.15s ease;
+        }
+        .screenshot-modal.visible {
+            display: flex;
+        }
+        @keyframes modalPopIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .screenshot-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(18, 18, 21, 0.8);
+        }
+        .modal-toggle-group {
+            display: flex;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .modal-toggle-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: var(--font);
+        }
+        .modal-toggle-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .modal-toggle-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-weight: 500;
+        }
+        .modal-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .modal-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.55);
+            width: 26px;
+            height: 26px;
+            border-radius: 9999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            transition: all 0.15s ease;
+        }
+        .modal-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+        .screenshot-modal-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            padding: 10px;
+            cursor: zoom-out;
+        }
+        .screenshot-modal-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+            cursor: default;
+        }
+
+        /* ── SETTINGS OVERLAY ─────────────────────────────────── */
+        .settings-overlay {
+            display: none; position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-primary);
+            border-radius: 0 var(--panel-radius) var(--panel-radius) 0;
+            z-index: 100; flex-direction: column; overflow: hidden;
+            backdrop-filter: blur(40px);
+        }
+        .settings-overlay.visible { display: flex; }
+
+        .settings-close-btn {
+            background: transparent; border: none; color: var(--text-muted);
+            font-size: 12px; cursor: pointer; width: 24px; height: 24px;
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .settings-close-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        .settings-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);
+        }
+        .settings-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+
+        .settings-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px 14px 14px 14px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+        }
+        .settings-body::-webkit-scrollbar {
+            width: 5px;
+        }
+        .settings-body::-webkit-scrollbar-track {
+            background: transparent;
+            margin: 6px 0;
+        }
+        .settings-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 9999px;
+        }
+        .settings-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+        .settings-group { margin-bottom: 14px; }
+        .settings-group-title {
+            font-size: 9px; font-weight: 600; letter-spacing: 0.8px;
+            text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;
+        }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; }
+        .setting-label { font-size: 12px; color: var(--text-secondary); }
+        .setting-select {
+            background: var(--bg-tertiary); border: 1px solid var(--border-medium);
+            border-radius: 8px; color: var(--text-primary); font-size: 11px;
+            padding: 4px 8px; font-family: var(--font); cursor: pointer; outline: none; min-width: 130px;
+        }
+        .setting-select:focus { border-color: var(--accent); }
+
+        .setting-toggle {
+            position: relative; width: 36px; height: 20px;
+            background: var(--bg-tertiary); border-radius: 10px;
+            cursor: pointer; transition: background 0.3s; border: 1px solid var(--border-medium);
+        }
+        .setting-toggle.on { background: var(--accent-dim); border-color: var(--accent); }
+        .setting-toggle::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--text-muted); transition: all 0.3s;
+        }
+        .setting-toggle.on::after { left: 18px; background: var(--accent); }
+
+        /* API Keys & Reset Styles (Minimalist neutral design matching extension & controls) */
+        .ghost-btn {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-muted);
+            font-family: var(--font);
+            font-size: 11px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            transition: color 0.15s ease, background 0.15s ease;
+            user-select: none;
+        }
+        .ghost-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .ghost-btn:active {
+            transform: scale(0.97);
+        }
+
+        .provider-box {
+            margin-bottom: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.015);
+            overflow: hidden;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .provider-box:hover {
+            border-color: rgba(255, 255, 255, 0.09);
+            background: rgba(255, 255, 255, 0.025);
+        }
+        .provider-box[open] {
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .provider-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px;
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+            outline: none;
+        }
+        .provider-header::-webkit-details-marker {
+            display: none;
+        }
+
+        .provider-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .provider-chevron {
+            font-size: 9.5px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+            width: 12px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .provider-box[open] > .provider-header .provider-chevron {
+            transform: rotate(90deg);
+        }
+        .provider-title {
+            font-size: 11.5px;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: 0.1px;
+        }
+        .provider-count {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: var(--font);
+            margin-left: 2px;
+        }
+        .btn-add-key {
+            font-size: 10px;
+            padding: 2px 6px;
+            color: var(--text-muted);
+        }
+        .btn-add-key:hover {
+            color: #ffffff;
+        }
+
+        .provider-body {
+            padding: 0 4px 6px 4px;
+        }
+        .keys-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .key-entry-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 8px;
+            border-radius: 5px;
+            background: transparent;
+            transition: background 0.15s ease;
+            gap: 6px;
+            min-height: 28px;
+        }
+        .key-entry-row:hover {
+            background: rgba(255, 255, 255, 0.035);
+        }
+        .key-entry-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+        .key-mode-pill {
+            font-size: 9px;
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1px 4px;
+            border-radius: 3px;
+            letter-spacing: 0.4px;
+            flex-shrink: 0;
+        }
+        .key-mode-pill.env {
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .key-value-text {
+            font-size: 10.5px;
+            font-family: monospace;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .key-entry-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            flex-shrink: 0;
+        }
+        .key-entry-row:hover .key-entry-actions,
+        .key-entry-row.editing .key-entry-actions {
+            opacity: 1;
+        }
+        .btn-entry-edit, .btn-entry-remove {
+            padding: 3px;
+            color: var(--text-muted);
+        }
+        .btn-entry-edit:hover {
+            color: #ffffff;
+        }
+        .btn-entry-remove:hover {
+            color: #ef5350;
+        }
+
+        .key-edit-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+        .btn-mode-toggle {
+            font-size: 9.5px;
+            font-family: monospace;
+            padding: 2px 5px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            user-select: none;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+        .btn-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .btn-mode-toggle .mode-active {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .btn-mode-toggle .mode-divider {
+            opacity: 0.3;
+        }
+
+        .key-edit-input {
+            flex: 1;
+            min-width: 0;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            color: var(--text-primary);
+            font-size: 10.5px;
+            font-family: monospace;
+            padding: 2px 7px;
+            outline: none;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        .key-edit-input:focus {
+            border-color: rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.07);
+        }
+        .key-edit-input::placeholder {
+            color: var(--text-muted);
+            font-family: var(--font);
+            font-size: 10px;
+        }
+        .key-empty-notice {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-style: italic;
+            padding: 5px 8px;
+        }
+
+        /* ── ONBOARDING SETUP CARD (Neutral minimalist dark aesthetic) ──────── */
+        .onboarding-card {
+            width: 100%;
+            background: rgba(28, 28, 34, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--panel-radius);
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .onboarding-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .onboarding-badge {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            font-size: 9.5px;
+            font-weight: 500;
+            text-transform: uppercase;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: 0.04em;
+        }
+        .onboarding-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #ffffff;
+        }
+        .onboarding-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            margin: 0;
+        }
+        .onboarding-btn {
+            align-self: flex-start;
+            margin-top: 4px;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 7px;
+            font-size: 11.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: var(--font);
+        }
+        .onboarding-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.28);
+            transform: translateY(-1px);
+        }
+        .btn-entry-save {
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .btn-entry-save:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        .btn-entry-cancel {
+            color: var(--text-muted);
+        }
+        .btn-entry-cancel:hover {
+            color: #ef5350;
+            background: rgba(239, 83, 80, 0.1);
+            border-color: rgba(239, 83, 80, 0.25);
+        }
+
+        @keyframes highlightFlash {
+            0% { border-color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.08); }
+            100% { border-color: rgba(255, 255, 255, 0.07); background: transparent; }
+        }
+        .highlight-flash {
+            animation: highlightFlash 1.4s ease-out;
+        }
+
+        .save-error-feedback {
+            font-size: 10px;
+            color: #ffa726;
+            margin-top: 5px;
+            min-height: 14px;
+        }
+
+        .btn-ghost-danger {
+            color: var(--text-muted);
+        }
+        .btn-ghost-danger:hover {
+            color: #ef5350;
+            background: rgba(239, 83, 80, 0.08);
+        }
+
+
+
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper" id="app-wrapper">
+
+        <div class="pill-row">
+            <!-- Group: pill + panel aligned together (without drag handle) -->
+            <div class="pill-panel-group" id="pill-panel-group">
+
+                <!-- PILL -->
+                <div class="dynamic-pill" id="pill-container"
+                     onmouseenter="setHitTest(true)" onmouseleave="handleMouseLeave()">
+                    <div class="pill-section pill-left">
+                        <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
+                            <i class="fa-solid fa-microphone-slash" id="mic-icon"></i>
+                        </button>
+                    </div>
+                    <div class="pill-section pill-center">
+                        <div class="input-wrapper">
+                            <input type="text" id="command-input" placeholder="Click..."
+                                   autocomplete="off"
+                                   onkeypress="handlePillInput(event)"
+                                   onfocus="onInputFocus()"
+                                   onblur="onInputBlur(event)">
+                        </div>
+                    </div>
+                    <div class="pill-section pill-right">
+                        <button class="icon-btn panel-toggle" id="panel-toggle-btn" onclick="togglePanel()" title="Expand">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <button class="icon-btn action-btn" id="action-btn" onclick="actionBtnClick()" title="Close">
+                            <i class="fa-solid fa-xmark" id="action-btn-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PANEL (below pill, same width) -->
+                <div class="panel-container" id="panel-container"
+                     onmouseenter="setHitTest(true)" onmouseleave="handleMouseLeave()"
+                     onmousedown="preventInputBlur(event)">
+                    <div class="panel" id="panel">
+
+                        <!-- SIDEBAR (Thin icon rail when closed, expands on toggle) -->
+                        <div class="sidebar" id="sidebar">
+                            <div class="sidebar-top">
+                                <button class="sidebar-item-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+                                    <span class="sidebar-item-icon">
+                                        <svg class="sidebar-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="3" width="18" height="18" rx="4" />
+                                            <line x1="9" y1="3" x2="9" y2="21" />
+                                        </svg>
+                                    </span>
+                                    <span class="sidebar-item-text">Chats</span>
+                                </button>
+                                <button class="sidebar-item-btn new-chat-btn" onclick="newChat()" aria-label="New Chat">
+                                    <span class="sidebar-item-icon">
+                                        <svg class="sidebar-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="5" x2="12" y2="19" />
+                                            <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                    </span>
+                                    <span class="sidebar-item-text">New Chat</span>
+                                </button>
+                            </div>
+
+                            <div class="sidebar-chats" id="sidebar-chats"></div>
+
+                            <div class="sidebar-bottom">
+
+                                <button class="sidebar-item-btn" id="sidebar-settings-btn" onclick="toggleSettings()" aria-label="Settings">
+                                    <span class="sidebar-item-icon">
+                                        <svg class="sidebar-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+                                    </span>
+                                    <span class="sidebar-item-text">Settings</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- MAIN CONTENT (no top bar / top line) -->
+                        <div class="main-content">
+                            <div class="chat-area" id="chat-area">
+                                <div class="chat-empty" id="chat-empty">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    <span>Type a command to start</span>
+                                </div>
+                            </div>
+
+
+                            <!-- SETTINGS OVERLAY -->
+                            <div class="settings-overlay" id="settings-overlay">
+                                <div class="settings-header">
+                                    <span class="settings-title">Settings</span>
+                                    <button class="settings-close-btn" onclick="toggleSettings()" title="Close Settings">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <div class="settings-body">
+                                <div class="settings-group">
+                                    <div class="settings-group-title">AI Models</div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Chat Model</span>
+                                        <select class="setting-select" id="setting-chat-model" onchange="changeSetting('chat_model', this.value)">
+                                            <option value="muse_glimmer">Muse Glimmer 30B</option>
+                                            <option value="gemini_3_5">Gemini 3.5 Flash</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Task Mode</span>
+                                        <select class="setting-select" id="setting-task-mode" onchange="changeSetting('pilot_autonomous_mode', this.value)">
+                                            <option value="vision">Vision (Screen)</option>
+                                            <option value="web">Web Agent</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <div class="settings-group-title">Vision Agent</div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Max Steps</span>
+                                        <select class="setting-select" id="setting-max-steps" onchange="changeSetting('pilot_max_steps', this.value)">
+                                            <option value="15">15</option><option value="25">25</option>
+                                            <option value="40" selected>40</option><option value="60">60</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Visual History</span>
+                                        <select class="setting-select" id="setting-visual-history" onchange="changeSetting('pilot_visual_history_turns', this.value)">
+                                            <option value="1">1 frame (Fastest)</option>
+                                            <option value="2">2 frames</option>
+                                            <option value="3" selected>3 frames (Recommended)</option>
+                                            <option value="5">5 frames (Deep memory)</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Screenshot Interval</span>
+                                        <select class="setting-select" id="setting-ss-interval" onchange="changeSetting('pilot_auto_screenshot_interval', this.value)">
+                                            <option value="2">2s</option><option value="3" selected>3s</option><option value="5">5s</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Privacy Sanitization</span>
+                                        <div class="setting-toggle on" id="setting-sanitization"
+                                             onclick="toggleSanitization(this)"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <div class="settings-group-title">Voice</div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Wake Word</span>
+                                        <select class="setting-select" id="setting-wake-word" onchange="changeSetting('pilot_custom_wake_words', this.value)">
+                                            <option value="hero" selected>Hero</option><option value="pilot">Pilot</option><option value="jarvis">Jarvis</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Voice Activation</span>
+                                        <div class="setting-toggle on" id="setting-voice-activation"
+                                             onclick="toggleSettingSwitch(this, 'pilot_voice_activation')"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <div class="settings-group-title">Window</div>
+                                    <div class="setting-row">
+                                        <span class="setting-label">Always on Top</span>
+                                        <div class="setting-toggle on" id="setting-always-on-top"
+                                             onclick="toggleSettingSwitch(this, 'pilot_always_on_top')"></div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-group">
+                                    <div class="settings-group-title">API Keys & Model Access</div>
+                                    
+                                    <!-- NVIDIA NIM BOX -->
+                                    <details class="provider-box" id="electron-box-nvidia" open>
+                                        <summary class="provider-header">
+                                            <div class="provider-title-wrap">
+                                                <i class="fa-solid fa-chevron-right provider-chevron"></i>
+                                                <span class="provider-title">NVIDIA NIM</span>
+                                                <span class="provider-count" id="electron-count-nvidia"></span>
+                                            </div>
+                                            <button type="button" class="ghost-btn btn-add-key" onclick="addElectronKeyRow('nvidia')" title="Add Key">
+                                                <i class="fa-solid fa-plus" style="font-size: 10px;"></i>
+                                                <span>Add</span>
+                                            </button>
+                                        </summary>
+                                        <div class="provider-body">
+                                            <div class="keys-list" id="electron-list-nvidia"></div>
+                                        </div>
+                                    </details>
+
+                                    <!-- GOOGLE GEMINI BOX -->
+                                    <details class="provider-box" id="electron-box-google" open>
+                                        <summary class="provider-header">
+                                            <div class="provider-title-wrap">
+                                                <i class="fa-solid fa-chevron-right provider-chevron"></i>
+                                                <span class="provider-title">Google Gemini</span>
+                                                <span class="provider-count" id="electron-count-google"></span>
+                                            </div>
+                                            <button type="button" class="ghost-btn btn-add-key" onclick="addElectronKeyRow('google')" title="Add Key">
+                                                <i class="fa-solid fa-plus" style="font-size: 10px;"></i>
+                                                <span>Add</span>
+                                            </button>
+                                        </summary>
+                                        <div class="provider-body">
+                                            <div class="keys-list" id="electron-list-google"></div>
+                                        </div>
+                                    </details>
+
+                                    <!-- GROQ BOX -->
+                                    <details class="provider-box" id="electron-box-groq">
+                                        <summary class="provider-header">
+                                            <div class="provider-title-wrap">
+                                                <i class="fa-solid fa-chevron-right provider-chevron"></i>
+                                                <span class="provider-title">Groq</span>
+                                                <span class="provider-count" id="electron-count-groq"></span>
+                                            </div>
+                                            <button type="button" class="ghost-btn btn-add-key" onclick="addElectronKeyRow('groq')" title="Add Key">
+                                                <i class="fa-solid fa-plus" style="font-size: 10px;"></i>
+                                                <span>Add</span>
+                                            </button>
+                                        </summary>
+                                        <div class="provider-body">
+                                            <div class="keys-list" id="electron-list-groq"></div>
+                                        </div>
+                                    </details>
+
+                                    <div class="save-error-feedback" id="electron-error-feedback"></div>
+                                </div>
+
+                                <div class="settings-group">
+                                    <div class="settings-group-title">Storage & Data</div>
+                                    <div class="setting-row">
+                                        <div class="key-info-col">
+                                            <span class="setting-label">Factory Reset</span>
+                                            <span class="key-state-text">Clear chat history and stored keys</span>
+                                        </div>
+                                        <button type="button" class="ghost-btn btn-ghost-danger" onclick="resetElectronAllData()" title="Reset all data">
+                                            <i class="fa-solid fa-trash-can" style="font-size: 10px;"></i>
+                                            <span>Reset</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SCREENSHOT LIGHTBOX MODAL -->
+                            <div class="screenshot-modal" id="screenshot-modal" onclick="closeScreenshotModal(event)">
+                                <div class="screenshot-modal-header" onclick="event.stopPropagation()">
+                                    <div class="modal-toggle-group">
+                                        <button class="modal-toggle-btn active" id="modal-btn-sanitized" onclick="switchModalView('sanitized')">Sanitized</button>
+                                        <button class="modal-toggle-btn" id="modal-btn-raw" onclick="switchModalView('raw')">Original</button>
+                                    </div>
+                                    <div class="modal-controls">
+                                        <button class="modal-btn" onclick="openScreenshotLargeWindow(modalSanitizedSrc, modalRawSrc)" title="Open in window">
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        </button>
+                                        <button class="modal-btn modal-close-btn" onclick="closeScreenshotModal()" title="Close">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="screenshot-modal-body" onclick="closeScreenshotModal(event)">
+                                    <img class="screenshot-modal-img" id="screenshot-modal-img" src="" alt="" onclick="event.stopPropagation()" />
+                                </div>
+                            </div>
+                        </div> <!-- closes settings-overlay -->
+                    </div> <!-- closes main-content -->
+                </div> <!-- closes panel -->
+            </div> <!-- closes panel-container -->
+        </div> <!-- closes pill-panel-group -->
+
+        <!-- DRAG HANDLE (inside pill-row, right next to pill-panel-group) -->
+        <div class="drag-handle" id="drag-handle" title="Hold to Move"
+             onmouseenter="setHitTest(true)" onmouseleave="handleMouseLeave()">
+            <i class="fa-solid fa-grip-vertical"></i>
+        </div>
+    </div> <!-- closes pill-row -->
+
+</div> <!-- closes app-wrapper -->
+
+    <script>
+        // ═══════════════════════════════════════════════════════════
+        // STATE
+        // ═══════════════════════════════════════════════════════════
+        const BACKEND_PORT = 8765;
+        const PILL_HEIGHT = 48;
+        const PANEL_HEIGHT = 300;
+
+        let socket = null;
+        let micActive = false;
+        let panelOpen = false;
+        let sidebarOpen = false;
+        let inputFocused = false;
+        let settingsOpen = false;
+        let agentWorking = false;
+        let mouseOverUI = false;
+        let taskStartTime = null;
+
+        // ── MULTI-CHAT STATE ─────────────────────────────────────
+        let chats = [];        // Array of { id, title, messages: [{role, content, type}] }
+        let activeChatId = null;
+        let isApplyingRemoteSync = false;
+        let lastSyncedChatsJson = '';
+        let lastSyncedActiveId = null;
+        let syncDebounceTimer = null;
+
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+
+        function applyRemoteChats(newChats, newActiveChatId) {
+            if (!Array.isArray(newChats) || newChats.length === 0) return;
+            const incomingJson = JSON.stringify(newChats);
+            const currentJson = JSON.stringify(chats);
+            if (incomingJson === currentJson && (!newActiveChatId || activeChatId === newActiveChatId)) {
+                return;
+            }
+            if (incomingJson === lastSyncedChatsJson && (!newActiveChatId || lastSyncedActiveId === newActiveChatId)) {
+                return;
+            }
+
+            lastSyncedChatsJson = incomingJson;
+            if (newActiveChatId) lastSyncedActiveId = newActiveChatId;
+
+            isApplyingRemoteSync = true;
+            try {
+                chats = newChats;
+                if (newActiveChatId && chats.some(c => c.id === newActiveChatId)) {
+                    activeChatId = newActiveChatId;
+                } else if (chats.length > 0 && !chats.some(c => c.id === activeChatId)) {
+                    activeChatId = chats[0].id;
+                }
+                persistChatsLocally(chats);
+                renderSidebar();
+                renderChat();
+            } finally {
+                isApplyingRemoteSync = false;
+            }
+        }
+
+        function persistChatsLocally(chatList) {
+            try {
+                localStorage.setItem('click_chats', JSON.stringify(chatList));
+                localStorage.removeItem('cp_chats');
+            } catch(e) {
+                try {
+                    const lightweight = (chatList || []).map(c => ({
+                        ...c,
+                        messages: (c.messages || []).map(m => {
+                            if (m.type === 'activity_group') {
+                                return {
+                                    ...m,
+                                    items: (m.items || []).map(it => {
+                                        if (it.type === 'step_item' || it.type === 'screenshot') {
+                                            return { ...it, rawContent: '', content: '' };
+                                        }
+                                        return it;
+                                    })
+                                };
+                            }
+                            if (m.type === 'step_item' || m.type === 'screenshot') {
+                                return { ...m, rawContent: '', content: '' };
+                            }
+                            return m;
+                        })
+                    }));
+                    localStorage.setItem('click_chats', JSON.stringify(lightweight));
+                } catch(e2) {
+                    try {
+                        const minimal = (chatList || []).slice(0, 5).map(c => ({
+                            id: c.id,
+                            title: c.title,
+                            messages: (c.id === activeChatId ? (c.messages || []).slice(-15) : [])
+                        }));
+                        localStorage.setItem('click_chats', JSON.stringify(minimal));
+                    } catch(e3) {}
+                }
+            }
+        }
+
+        async function initChats() {
+            let loaded = false;
+            // 1. Try get shared chats from main process / disk
+            if (window.electronAPI && window.electronAPI.getSharedChats) {
+                try {
+                    const shared = await window.electronAPI.getSharedChats();
+                    if (shared && Array.isArray(shared.chats) && shared.chats.length > 0) {
+                        chats = shared.chats;
+                        activeChatId = shared.activeChatId || chats[0].id;
+                        loaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            // 2. Try load from localStorage
+            if (!loaded) {
+                try {
+                    const saved = localStorage.getItem('click_chats') || localStorage.getItem('cp_chats');
+                    if (saved) {
+                        chats = JSON.parse(saved);
+                        if (Array.isArray(chats) && chats.length > 0) {
+                            activeChatId = chats[0].id;
+                            loaded = true;
+                        }
+                    }
+                    localStorage.removeItem('cp_chats');
+                } catch(e) {}
+            }
+
+            if (loaded) {
+                lastSyncedChatsJson = JSON.stringify(chats);
+                lastSyncedActiveId = activeChatId;
+                renderChat();
+                renderSidebar();
+                return;
+            }
+
+            newChat();
+        }
+
+        function saveChats(immediate = false) {
+            persistChatsLocally(chats);
+
+            // Sync to bridge relay for extension UI (only if not currently applying remote sync)
+            if (isApplyingRemoteSync) return;
+
+            const currentJson = JSON.stringify(chats);
+            if (currentJson === lastSyncedChatsJson && activeChatId === lastSyncedActiveId) {
+                return;
+            }
+            lastSyncedChatsJson = currentJson;
+            lastSyncedActiveId = activeChatId;
+
+            const sendSync = () => {
+                if (window.electronAPI && window.electronAPI.syncChats) {
+                    window.electronAPI.syncChats({ chats, activeChatId });
+                }
+            };
+
+            if (immediate) {
+                if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+                syncDebounceTimer = null;
+                sendSync();
+                return;
+            }
+
+            if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+            syncDebounceTimer = setTimeout(() => {
+                syncDebounceTimer = null;
+                sendSync();
+            }, 120);
+        }
+
+        function getActiveChat() {
+            return chats.find(c => c.id === activeChatId);
+        }
+
+        function newChat() {
+            if (settingsOpen) toggleSettings();
+            // ONLY stop tasks if currently actively running, never when idle
+            if (agentWorking) {
+                if (window.electronAPI && window.electronAPI.stopBrowserTask) {
+                    window.electronAPI.stopBrowserTask({ chatId: activeChatId });
+                }
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ action: 'stop_agent' }));
+                    socket.send(JSON.stringify({ action: 'clear_history' }));
+                }
+                agentWorking = false;
+                updateActionBtn();
+            }
+            taskStartTime = null;
+
+            const chat = {
+                id: generateId(),
+                title: 'New Chat',
+                messages: []
+            };
+            chats.unshift(chat);
+            activeChatId = chat.id;
+            lastSyncedActiveId = activeChatId;
+            saveChats(true); // Instant 0ms sync
+            renderChat();
+            renderSidebar();
+        }
+
+        function switchChat(chatId) {
+            if (chatId === activeChatId) return;
+            if (settingsOpen) toggleSettings();
+            // ONLY stop tasks if currently actively running
+            if (agentWorking) {
+                if (window.electronAPI && window.electronAPI.stopBrowserTask) {
+                    window.electronAPI.stopBrowserTask({ chatId: activeChatId });
+                }
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ action: 'stop_agent' }));
+                }
+                agentWorking = false;
+                updateActionBtn();
+            }
+            taskStartTime = null;
+
+            activeChatId = chatId;
+            lastSyncedActiveId = activeChatId;
+            renderChat();
+            renderSidebar();
+
+            // Instant 0ms switch relay to Extension
+            if (window.electronAPI && window.electronAPI.switchChat) {
+                window.electronAPI.switchChat(chatId);
+            }
+
+            saveChats(true); // Instant 0ms sync
+
+            // Sync history to backend
+            const chat = getActiveChat();
+            if (socket && socket.readyState === WebSocket.OPEN && chat) {
+                socket.send(JSON.stringify({
+                    action: 'set_history',
+                    history: chat.messages.filter(m => m.type !== 'tool' && m.type !== 'step_item' && m.type !== 'activity_group').map(m => ({
+                        role: m.role === 'agent' ? 'assistant' : m.role, content: m.content
+                    }))
+                }));
+            }
+        }
+
+        function deleteChat(chatId) {
+            chats = chats.filter(c => c.id !== chatId);
+            if (activeChatId === chatId) {
+                if (chats.length === 0) {
+                    newChat();
+                    return;
+                } else {
+                    activeChatId = chats[0].id;
+                    lastSyncedActiveId = activeChatId;
+                    renderChat();
+                }
+            }
+            saveChats(true);
+            renderSidebar();
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('sidebar-chats');
+            container.innerHTML = '';
+            chats.forEach(chat => {
+                const el = document.createElement('div');
+                el.className = `chat-item${chat.id === activeChatId ? ' active' : ''}`;
+                el.onclick = (e) => { if (!e.target.closest('.chat-item-delete')) switchChat(chat.id); };
+                el.innerHTML = `
+                    <i class="fa-regular fa-message chat-item-icon"></i>
+                    <span class="chat-item-text">${escapeHtml(chat.title)}</span>
+                    <button class="chat-item-delete" onclick="deleteChat('${chat.id}')" title="Delete">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function renderMessageItem(m, container) {
+            if (m.type === 'step_item') {
+                const row = document.createElement('div');
+                row.className = 'step-row';
+                let pillHtml = `<div class="step-pill"><span>Captured image</span>`;
+                if (m.latency) pillHtml += `<span class="step-pill-meta">${m.latency}ms</span>`;
+                pillHtml += `</div>`;
+
+                let thumbHtml = '';
+                if (m.content && m.content.length > 30) {
+                    thumbHtml = `
+                        <div class="step-thumb-wrap" role="button" tabindex="0" title="Click to view full image">
+                            <img class="step-thumb-img" src="${m.content}" draggable="false" alt="" />
+                        </div>
+                    `;
+                }
+
+                row.innerHTML = pillHtml + thumbHtml;
+
+                if (m.content && m.content.length > 30) {
+                    const thumbEl = row.querySelector('.step-thumb-wrap');
+                    if (thumbEl) {
+                        thumbEl.onmouseenter = () => setHitTest(true);
+                        const triggerOpen = (e) => {
+                            if (e) { e.stopPropagation(); e.preventDefault(); }
+                            openScreenshotLargeWindow(m.content, m.rawContent, m.step);
+                        };
+                        thumbEl.onclick = triggerOpen;
+                        thumbEl.onkeydown = (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') triggerOpen(e);
+                        };
+                    }
+                }
+
+                container.appendChild(row);
+            } else if (m.type === 'activity_group') {
+                const box = document.createElement('details');
+                box.className = 'activity-box';
+                if (m.expanded) {
+                    box.open = true;
+                }
+
+                const frames = (m.items || []).filter(it => it.type === 'step_item' || it.type === 'screenshot').length;
+                const frameText = frames > 0 ? `${frames} ${frames === 1 ? 'frame' : 'frames'}` : '';
+
+                box.innerHTML = `
+                    <summary class="activity-header" role="button">
+                        <i class="fa-solid fa-chevron-right activity-chevron"></i>
+                        <span class="activity-title">${escapeHtml(m.title || `Worked for ${m.duration || '0s'}`)}</span>
+                        ${frameText ? `<span class="activity-count">${frameText}</span>` : ''}
+                    </summary>
+                    <div class="activity-body"></div>
+                `;
+
+                const header = box.querySelector('.activity-header');
+                if (header) {
+                    header.onmouseenter = () => setHitTest(true);
+                }
+
+                box.ontoggle = () => {
+                    if (m.expanded !== box.open) {
+                        m.expanded = box.open;
+                        saveChats();
+                    }
+                };
+
+                const body = box.querySelector('.activity-body');
+                (m.items || []).forEach(item => {
+                    renderMessageItem(item, body);
+                });
+
+                container.appendChild(box);
+            } else if (m.type === 'thought') {
+                const el = document.createElement('div');
+                el.className = 'thought-bubble';
+                el.textContent = m.content;
+                container.appendChild(el);
+            } else if (m.type === 'action') {
+                const el = document.createElement('div');
+                el.className = 'action-pill';
+                const iconClass = getToolIcon(m.tool);
+                let statusHtml = '';
+                if (m.status === 'done') {
+                    statusHtml = '<i class="fa-solid fa-check action-pill-status"></i>';
+                } else if (m.status === 'error') {
+                    statusHtml = '<i class="fa-solid fa-triangle-exclamation action-pill-status error"></i>';
+                }
+                el.innerHTML = `
+                    <i class="fa-solid ${iconClass} action-pill-icon"></i>
+                    <span class="action-pill-text">${escapeHtml(m.label || m.content)}</span>
+                    ${statusHtml}
+                `;
+                container.appendChild(el);
+            } else if (m.type === 'ask_user') {
+                const card = document.createElement('div');
+                card.className = `ask-user-card ${m.status || 'pending'}`;
+                card.onmouseenter = () => setHitTest(true);
+
+                const cardId = m.id || (m.id = 'ask_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+
+                // Clear any existing active timer interval for this message ID
+                window._askTimers = window._askTimers || {};
+                if (window._askTimers[cardId]) {
+                    clearInterval(window._askTimers[cardId]);
+                    delete window._askTimers[cardId];
+                }
+
+                // Header row: Minimalist Header + Minimalist Timer (no boxes)
+                const header = document.createElement('div');
+                header.className = 'ask-user-header';
+
+                const badge = document.createElement('div');
+                badge.className = 'ask-user-badge';
+                badge.innerHTML = `<i class="fa-regular fa-circle-question"></i> <span>Input requested</span>`;
+                header.appendChild(badge);
+
+                const timerEl = document.createElement('div');
+                timerEl.className = 'ask-user-timer';
+                header.appendChild(timerEl);
+                card.appendChild(header);
+
+                // Question text
+                const questionEl = document.createElement('div');
+                questionEl.className = 'ask-user-question';
+                questionEl.textContent = m.question || 'The agent needs your input to proceed:';
+                card.appendChild(questionEl);
+
+                // Unified response handler: Cancels timer immediately, updates card state, and sends reply
+                const handleChoice = (answerText) => {
+                    if (!answerText || !answerText.trim() || m.status !== 'pending') return;
+                    const finalAnswer = answerText.trim();
+                    m.status = 'answered';
+                    m.answer = finalAnswer;
+                    if (window._askTimers && window._askTimers[cardId]) {
+                        clearInterval(window._askTimers[cardId]);
+                        delete window._askTimers[cardId];
+                    }
+                    saveChats();
+                    renderChat();
+
+                    // Relay user answer back to extension bridge & backend
+                    if (window.electronAPI && window.electronAPI.sendBrowserAgentUserReply) {
+                        window.electronAPI.sendBrowserAgentUserReply(finalAnswer);
+                    }
+                };
+
+                if (m.status === 'answered') {
+                    timerEl.style.display = 'none';
+                    const answeredEl = document.createElement('div');
+                    answeredEl.className = 'ask-answered-line';
+                    answeredEl.innerHTML = `<i class="fa-regular fa-circle-check" style="color: rgba(255, 255, 255, 0.45); font-size: 11px;"></i> <span class="ask-answered-label">Selected:</span> <span class="ask-answered-value">${escapeHtml(m.answer)}</span>`;
+                    card.appendChild(answeredEl);
+                } else if (m.status === 'expired' || (m.expiresAt && Date.now() >= m.expiresAt)) {
+                    m.status = 'expired';
+                    timerEl.textContent = 'Timed out';
+                    timerEl.className = 'ask-user-timer urgent';
+                    const expiredEl = document.createElement('div');
+                    expiredEl.className = 'ask-expired-line';
+                    expiredEl.innerHTML = `<i class="fa-regular fa-clock"></i> <span>3-minute response window expired</span>`;
+                    card.appendChild(expiredEl);
+                } else {
+                    // Active countdown: 3 minutes (180s)
+                    const updateCountdown = () => {
+                        const expiresAt = m.expiresAt || (Date.now() + 180000);
+                        const remainingMs = Math.max(0, expiresAt - Date.now());
+                        const remainingSec = Math.floor(remainingMs / 1000);
+                        const mins = Math.floor(remainingSec / 60);
+                        const secs = remainingSec % 60;
+                        timerEl.innerHTML = `<i class="fa-regular fa-clock" style="font-size: 10px;"></i> ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        if (remainingSec <= 30) {
+                            timerEl.classList.add('urgent');
+                        } else {
+                            timerEl.classList.remove('urgent');
+                        }
+                        if (remainingSec <= 0) {
+                            if (window._askTimers && window._askTimers[cardId]) {
+                                clearInterval(window._askTimers[cardId]);
+                                delete window._askTimers[cardId];
+                            }
+                            m.status = 'expired';
+                            saveChats();
+                            renderChat();
+                        }
+                    };
+
+                    updateCountdown();
+                    window._askTimers[cardId] = setInterval(updateCountdown, 1000);
+
+                    // Options list: vertical sequence in thin rows (transparent, translucent on hover)
+                    const optionsContainer = document.createElement('div');
+                    optionsContainer.className = 'ask-user-options';
+
+                    const opts = Array.isArray(m.options) ? m.options : [];
+                    opts.forEach(opt => {
+                        const row = document.createElement('div');
+                        row.className = 'ask-option-row';
+                        row.innerHTML = `
+                            <div class="ask-option-left">
+                                <i class="fa-regular fa-circle"></i>
+                                <span class="ask-option-text">${escapeHtml(opt)}</span>
+                            </div>
+                        `;
+                        row.onmouseenter = () => setHitTest(true);
+                        row.onclick = (e) => {
+                            e.stopPropagation();
+                            handleChoice(opt);
+                        };
+                        optionsContainer.appendChild(row);
+                    });
+
+                    // "Others" row: in the list, and converts inline into typing bar when clicked
+                    const otherRow = document.createElement('div');
+                    otherRow.className = 'ask-option-row ask-other-row';
+                    otherRow.innerHTML = `
+                        <div class="ask-option-left">
+                            <i class="fa-regular fa-pen-to-square"></i>
+                            <span class="ask-option-text">Other...</span>
+                        </div>
+                    `;
+                    otherRow.onmouseenter = () => setHitTest(true);
+
+                    // When "Other..." row is clicked, it transforms inline into a thin typing bar!
+                    otherRow.onclick = (e) => {
+                        e.stopPropagation();
+                        setHitTest(true);
+                        if (otherRow.classList.contains('expanded')) return;
+
+                        otherRow.classList.add('expanded');
+                        otherRow.innerHTML = `
+                            <input class="ask-other-input" type="text" placeholder="Type response..." />
+                            <button class="ask-other-send-btn" type="button" title="Send"><i class="fa-regular fa-paper-plane"></i></button>
+                        `;
+
+                        const inputEl = otherRow.querySelector('.ask-other-input');
+                        const sendBtn = otherRow.querySelector('.ask-other-send-btn');
+
+                        inputEl.onfocus = () => setHitTest(true);
+                        inputEl.onclick = (ev) => ev.stopPropagation();
+                        setTimeout(() => inputEl.focus(), 10);
+
+                        const submitOther = (ev) => {
+                            if (ev) ev.stopPropagation();
+                            const val = inputEl.value.trim();
+                            if (val) {
+                                handleChoice(val);
+                            }
+                        };
+
+                        sendBtn.onclick = submitOther;
+                        inputEl.onkeydown = (ev) => {
+                            if (ev.key === 'Enter') {
+                                ev.preventDefault();
+                                submitOther(ev);
+                            }
+                        };
+                    };
+
+                    optionsContainer.appendChild(otherRow);
+                    card.appendChild(optionsContainer);
+                }
+
+                container.appendChild(card);
+            } else if (m.type === 'tool') {
+                const el = document.createElement('div');
+                el.className = 'msg agent';
+                el.innerHTML = `<div class="tool-call"><span>${escapeHtml(m.content.substring(0,120))}</span></div>`;
+                container.appendChild(el);
+            } else if (m.type === 'screenshot') {
+                if (!m.content || m.content.length < 30) return;
+                const row = document.createElement('div');
+                row.className = 'step-row';
+                row.innerHTML = `
+                    <div class="step-pill"><span>Captured image</span></div>
+                    <div class="step-thumb-wrap" role="button" tabindex="0" title="View captured frame">
+                        <img class="step-thumb-img" src="${m.content}" draggable="false" alt="" />
+                    </div>
+                `;
+                const thumbEl = row.querySelector('.step-thumb-wrap');
+                if (thumbEl) {
+                    thumbEl.onmouseenter = () => setHitTest(true);
+                    thumbEl.onclick = () => openScreenshotLargeWindow(m.content, m.rawContent, m.step);
+                }
+                container.appendChild(row);
+            } else {
+                const el = document.createElement('div');
+                el.className = `msg ${m.role}`;
+                el.innerHTML = `<div class="msg-bubble">${escapeHtml(m.content)}</div>`;
+                container.appendChild(el);
+            }
+        }
+
+        let isElectronConfigured = false;
+
+        function openSettingsToKeys() {
+            if (!settingsOpen) toggleSettings();
+            const target = document.getElementById('electron-box-nvidia');
+            if (target) {
+                target.open = true;
+                setTimeout(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    target.classList.add('highlight-flash');
+                    setTimeout(() => target.classList.remove('highlight-flash'), 1200);
+                }, 120);
+            }
+        }
+
+        function renderChat() {
+            const area = document.getElementById('chat-area');
+            const chat = getActiveChat();
+            if (!chat || chat.messages.length === 0) {
+                if (!isElectronConfigured) {
+                    area.innerHTML = `
+                    <div class="onboarding-card" id="electron-onboarding-card">
+                        <div class="onboarding-top">
+                            <span class="onboarding-badge">Setup Required</span>
+                            <span class="onboarding-title"><i class="fa-solid fa-key" style="margin-right: 6px; font-size: 11px;"></i>Configure AI API Keys</span>
+                        </div>
+                        <p class="onboarding-desc">Click needs your NVIDIA NIM or Google Gemini API key to operate. You can paste keys directly or map existing system environment variables.</p>
+                        <button type="button" class="onboarding-btn" onclick="openSettingsToKeys()">Configure Keys Now</button>
+                    </div>`;
+                } else {
+                    area.innerHTML = `
+                    <div class="chat-empty" id="chat-empty">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Type a command to start</span>
+                    </div>`;
+                }
+                return;
+            }
+            area.innerHTML = '';
+            chat.messages.forEach(m => {
+                renderMessageItem(m, area);
+            });
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // WEBSOCKET & SETTINGS RESTORATION
+        // ═══════════════════════════════════════════════════════════
+        function restoreLocalSettings() {
+            try {
+                const chatModel = localStorage.getItem('command_pilot_chat_model');
+                if (chatModel) {
+                    const el = document.getElementById('setting-chat-model');
+                    if (el) el.value = chatModel;
+                }
+                const taskMode = localStorage.getItem('command_pilot_pilot_autonomous_mode');
+                if (taskMode) {
+                    const el = document.getElementById('setting-task-mode');
+                    if (el) el.value = taskMode;
+                }
+                const maxSteps = localStorage.getItem('command_pilot_pilot_max_steps');
+                if (maxSteps) {
+                    const el = document.getElementById('setting-max-steps');
+                    if (el) el.value = maxSteps;
+                }
+                const visHist = localStorage.getItem('command_pilot_pilot_visual_history_turns');
+                if (visHist) {
+                    const el = document.getElementById('setting-visual-history');
+                    if (el) el.value = visHist;
+                }
+                const ssInterval = localStorage.getItem('command_pilot_pilot_auto_screenshot_interval');
+                if (ssInterval) {
+                    const el = document.getElementById('setting-ss-interval');
+                    if (el) el.value = ssInterval;
+                }
+                const wakeWord = localStorage.getItem('command_pilot_pilot_custom_wake_words');
+                if (wakeWord) {
+                    const el = document.getElementById('setting-wake-word');
+                    if (el) el.value = wakeWord;
+                }
+                const aot = localStorage.getItem('command_pilot_pilot_always_on_top');
+                if (aot !== null) {
+                    const el = document.getElementById('setting-always-on-top');
+                    const isOn = aot === 'true';
+                    if (el) el.classList.toggle('on', isOn);
+                    if (window.electronAPI) window.electronAPI.setAlwaysOnTop(isOn);
+                }
+                const va = localStorage.getItem('command_pilot_pilot_voice_activation');
+                if (va !== null) {
+                    const el = document.getElementById('setting-voice-activation');
+                    if (el) el.classList.toggle('on', va === 'true');
+                }
+                const sanitize = localStorage.getItem('command_pilot_sanitization');
+                if (sanitize !== null) {
+                    const el = document.getElementById('setting-sanitization');
+                    const isOn = sanitize !== 'false';
+                    if (el) el.classList.toggle('on', isOn);
+                    // Send initial state to extension on load
+                    if (window.electronAPI) window.electronAPI.setSanitization(isOn);
+                }
+            } catch (e) {
+                console.warn('Error restoring local settings:', e);
+            }
+        }
+        restoreLocalSettings();
+
+        let backendRetryDelay = 400;
+        function connectToBackend() {
+            try {
+                socket = new WebSocket(`ws://127.0.0.1:${BACKEND_PORT}/ws`);
+                socket.onopen = () => {
+                    console.log('Connected');
+                    backendRetryDelay = 400;
+                    socket.send(JSON.stringify({ action: 'get_settings' }));
+                };
+                socket.onmessage = (event) => handleBackendMessage(JSON.parse(event.data));
+                socket.onclose = () => {
+                    setTimeout(connectToBackend, backendRetryDelay);
+                    backendRetryDelay = Math.min(3000, Math.round(backendRetryDelay * 1.5));
+                };
+                socket.onerror = () => {};
+            } catch (e) {
+                setTimeout(connectToBackend, backendRetryDelay);
+                backendRetryDelay = Math.min(3000, Math.round(backendRetryDelay * 1.5));
+            }
+        }
+        connectToBackend();
+
+        async function fetchSettings() {
+            if (window.electronAPI) {
+                try {
+                    const cfg = await window.electronAPI.getFromBackend('/api/adv_settings');
+                    if (cfg) {
+                        applySettings(cfg);
+                    }
+                } catch (e) {
+                    console.warn('fetchSettings error:', e);
+                }
+            }
+        }
+        fetchSettings();
+
+        function handleBackendMessage(data) {
+            if (data.type === 'status') {
+                const s = (data.payload || '').toUpperCase();
+                agentWorking = (s === 'SPEAKING' || s === 'PROCESSING' || s === 'LISTENING');
+                updateActionBtn();
+            }
+
+            if (data.type === 'response') {
+                addMessage('agent', data.payload);
+                agentWorking = false;
+                updateActionBtn();
+            }
+
+            if (data.type === 'log') {
+                const log = data.payload || '';
+                if (log.match(/[\u{1F916}\u{2708}\u{1F9E0}\u{1F441}]/u)) {
+                    addToolCall(log);
+                }
+            }
+
+            if (data.action === 'speaking') document.body.classList.add('state-speaking');
+            else if (data.action === 'idle') {
+                document.body.classList.remove('state-speaking');
+                agentWorking = false;
+                updateActionBtn();
+            }
+
+            if (data.type === 'screenshot') addScreenshot(data.payload);
+            if (data.type === 'adv_settings_full' && data.settings) applySettings(data.settings);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // CHAT MESSAGES
+        // ═══════════════════════════════════════════════════════════
+        function addMessage(role, text) {
+            if (!text || !text.trim()) return;
+            let clean = text.replace(/\[SFX_[A-Z_]+\]/g, '').trim();
+            if (!clean) return;
+
+            const chat = getActiveChat();
+            if (!chat) return;
+
+            chat.messages.push({ role, content: clean, type: 'message' });
+
+            // Auto-title from first user message
+            if (role === 'user' && chat.title === 'New Chat') {
+                chat.title = clean.substring(0, 30) + (clean.length > 30 ? '...' : '');
+                renderSidebar();
+            }
+
+            saveChats();
+            renderChat();
+
+            if (role === 'agent' && !panelOpen) togglePanel();
+        }
+
+        function addToolCall(text) {
+            let clean = text.replace(/[\u2705\u274C\u26A0\uFE0F\u2728\u{1F4E1}\u{1F9E0}\u{1F441}\u{1F916}\u{2708}\u{1F50D}]/gu, '').trim();
+            if (clean.startsWith('[Pilot]:')) clean = clean.substring(9).trim();
+            if (!clean) return;
+
+            const chat = getActiveChat();
+            if (!chat) return;
+            chat.messages.push({ role: 'agent', content: clean, type: 'tool' });
+            saveChats();
+            renderChat();
+        }
+
+        function normalizeDataUrl(b64) {
+            if (!b64 || typeof b64 !== 'string') return '';
+            const clean = b64.trim();
+            if (!clean) return '';
+            if (clean.startsWith('data:image/')) return clean;
+            if (clean.startsWith('data:')) return clean;
+            return `data:image/jpeg;base64,${clean}`;
+        }
+
+        function addScreenshot(sanitizedB64, rawB64 = '', step = null) {
+            if (!sanitizedB64) return;
+            const chat = getActiveChat();
+            if (!chat) return;
+            chat.messages.push({
+                role: 'agent',
+                content: normalizeDataUrl(sanitizedB64),
+                rawContent: normalizeDataUrl(rawB64),
+                step: step,
+                type: 'screenshot'
+            });
+            saveChats();
+            renderChat();
+        }
+
+        function openScreenshotLargeWindow(sanitizedSrc, rawSrc = '', step = null) {
+            const s = normalizeDataUrl(sanitizedSrc);
+            const r = normalizeDataUrl(rawSrc);
+
+            if (window.electronAPI && window.electronAPI.openScreenshotWindow) {
+                window.electronAPI.openScreenshotWindow({
+                    sanitized: s,
+                    raw: r,
+                    step: step
+                });
+            } else {
+                openScreenshotModal(s, r);
+            }
+        }
+
+        function cleanSelectorName(selector) {
+            if (!selector || typeof selector !== 'string') return '';
+            let sel = selector.trim();
+
+            sel = sel.replace(/\s*\(.*?\)\s*/g, '').replace(/["']/g, '');
+
+            const attrMatch = sel.match(/\[(?:aria-label|placeholder|data-testid|title|name)=([^\]]+)\]/i);
+            if (attrMatch && attrMatch[1]) {
+                sel = attrMatch[1];
+            } else {
+                const hrefMatch = sel.match(/\[href=\/([^\]]+)\]/i);
+                if (hrefMatch && hrefMatch[1]) {
+                    sel = hrefMatch[1];
+                } else {
+                    sel = sel.replace(/^[a-z0-9_-]+(?=[#.])/i, '');
+                    const idMatch = sel.match(/#([a-zA-Z0-9_-]+)/);
+                    if (idMatch) {
+                        sel = idMatch[1];
+                    } else {
+                        const classMatch = sel.match(/\.([a-zA-Z0-9_-]+)/);
+                        if (classMatch) {
+                            sel = classMatch[1];
+                        }
+                    }
+                }
+            }
+
+            sel = sel.replace(/[-_]?(?:btn|button|input|field|txt|box|container|wrapper|wrap|elem|element|link)$/i, '');
+            sel = sel.replace(/^(?:btn|input|txt)[-_]?/i, '');
+
+            sel = sel.replace(/([a-z])([A-Z])/g, '$1 $2');
+            sel = sel.replace(/[-_/.]+/g, ' ');
+
+            sel = sel.replace(/\b[a-z]/g, c => c.toUpperCase()).trim();
+
+            return sel || selector;
+        }
+
+        function getToolIcon(tool) {
+            switch (tool) {
+                case 'click': return 'fa-arrow-pointer';
+                case 'type': return 'fa-font';
+                case 'scroll': return 'fa-arrows-up-down';
+                case 'navigate': return 'fa-compass';
+                case 'press_key': return 'fa-keyboard';
+                case 'extract_content': return 'fa-magnifying-glass';
+                case 'get_console_logs': return 'fa-terminal';
+                case 'wait': return 'fa-clock';
+                default: return 'fa-bolt';
+            }
+        }
+
+        function formatAction(tool, args) {
+            if (!tool || tool === 'finish_task') return null;
+            args = args || {};
+
+            switch (tool) {
+                case 'click': {
+                    if (args.text && typeof args.text === 'string' && args.text.trim()) {
+                        let t = args.text.replace(/[\u2705\u274C\u26A0\uFE0F\u2728\u{1F4E1}\u{1F9E0}\u{1F441}\u{1F916}\u{2708}\u{1F50D}\u{23F3}]/gu, '').trim();
+                        if (t.length > 32) t = t.substring(0, 30) + '...';
+                        return `Click "${t}"`;
+                    }
+                    if (args.selector) {
+                        const name = cleanSelectorName(args.selector);
+                        return `Click "${name}"`;
+                    }
+                    if (args.coordinates && Array.isArray(args.coordinates)) {
+                        return `Click (${Math.round(args.coordinates[0])}, ${Math.round(args.coordinates[1])})`;
+                    }
+                    return 'Click element';
+                }
+
+                case 'type': {
+                    const fieldName = args.selector ? cleanSelectorName(args.selector) : 'field';
+                    const val = typeof args.text === 'string' ? args.text.trim() : '';
+                    const isSensitive = /password|cvv|secret|pin|token|card/i.test(args.selector || '');
+
+                    if (isSensitive) {
+                        return `Enter sensitive data into ${fieldName}`;
+                    }
+                    if (val) {
+                        let displayVal = val.length > 25 ? val.substring(0, 23) + '...' : val;
+                        let res = `Type "${displayVal}" in ${fieldName}`;
+                        if (args.press_enter) res += ' ↵';
+                        return res;
+                    }
+                    return `Fill ${fieldName}`;
+                }
+
+                case 'scroll': {
+                    const dir = (args.direction || 'down').toLowerCase();
+                    return dir === 'up' ? 'Scroll up' : 'Scroll down';
+                }
+
+                case 'navigate': {
+                    let u = args.url || '';
+                    try {
+                        const parsed = new URL(u);
+                        u = parsed.hostname + (parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '');
+                    } catch (e) {}
+                    if (u.length > 36) u = u.substring(0, 33) + '...';
+                    return u ? `Open ${u}` : 'Navigate to page';
+                }
+
+                case 'press_key': {
+                    const k = args.key || 'Key';
+                    return `Press ${k}`;
+                }
+
+                case 'wait': {
+                    const sec = args.seconds || 1;
+                    return `Wait ${sec}s`;
+                }
+
+                case 'extract_content': {
+                    const target = args.selector ? cleanSelectorName(args.selector) : 'content';
+                    return `Read ${target}`;
+                }
+
+                case 'get_console_logs': {
+                    return 'Inspect console logs';
+                }
+
+                default: {
+                    const cleanName = tool.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    return cleanName;
+                }
+            }
+        }
+
+        function addStepItem(step, latency, sanitizedB64, rawB64 = '', telemetry = {}) {
+            const chat = getActiveChat();
+            if (!chat) return;
+            const isGpu = !!(telemetry.gpuAccelerated || (telemetry.activeBackend && telemetry.activeBackend.includes('webgpu')));
+            chat.messages.push({
+                role: 'agent',
+                type: 'step_item',
+                step: step,
+                latency: latency || 0,
+                gpuAccelerated: isGpu,
+                isNvidia: !!telemetry.isNvidia,
+                gpuModel: telemetry.gpuModel || '',
+                content: normalizeDataUrl(sanitizedB64),
+                rawContent: normalizeDataUrl(rawB64)
+            });
+            saveChats();
+            renderChat();
+        }
+
+        function addThought(thought) {
+            if (!thought || !thought.trim()) return;
+            let clean = thought.trim();
+            const chat = getActiveChat();
+            if (!chat) return;
+            chat.messages.push({
+                role: 'agent',
+                type: 'thought',
+                content: clean
+            });
+            saveChats();
+            renderChat();
+        }
+
+        function addActionPill(tool, args, label) {
+            if (!label) return;
+            const chat = getActiveChat();
+            if (!chat) return;
+            chat.messages.push({
+                role: 'agent',
+                type: 'action',
+                tool: tool,
+                args: args,
+                label: label,
+                status: 'running'
+            });
+            saveChats();
+            renderChat();
+        }
+
+        function addAskUserMessage(data) {
+            data = data || {};
+            const question = data.question || 'The agent needs your input to proceed:';
+            let options = Array.isArray(data.options) && data.options.length ? [...data.options] : [];
+            const timeoutMs = Number(data.timeoutMs || data.timeout_ms) || 180000;
+
+            // Auto-fallback intelligent options if none were provided
+            if (!options.length) {
+                const qLower = question.toLowerCase();
+                if (qLower.includes('captcha') || qLower.includes('verify') || qLower.includes('verification') || qLower.includes('cloudflare') || qLower.includes('turnstile')) {
+                    options = ['I completed verification', 'Skip this challenge', 'Cancel task'];
+                } else if (qLower.includes('download') || qLower.includes('format')) {
+                    options = ['Download SVG', 'Download PNG', 'Cancel'];
+                } else if (qLower.includes('login') || qLower.includes('sign in')) {
+                    options = ['I am logged in', 'Continue as guest', 'Cancel task'];
+                } else {
+                    options = ['Yes, proceed', 'No, skip', 'Cancel'];
+                }
+            }
+
+            const chat = getActiveChat();
+            if (!chat) return;
+
+            // Avoid adding identical pending ask_user prompt if already displayed
+            for (let i = chat.messages.length - 1; i >= Math.max(0, chat.messages.length - 3); i--) {
+                const existing = chat.messages[i];
+                if (existing && existing.type === 'ask_user' && existing.status === 'pending') {
+                    if (existing.question === question) return;
+                }
+            }
+
+            chat.messages.push({
+                id: 'ask_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                role: 'agent',
+                type: 'ask_user',
+                question: question,
+                options: options,
+                status: 'pending',
+                answer: null,
+                expiresAt: Date.now() + timeoutMs,
+                timeoutMs: timeoutMs
+            });
+
+            saveChats();
+            renderChat();
+
+            // Automatically expand/open panel if collapsed so user sees the prompt immediately
+            if (!panelOpen) togglePanel();
+        }
+
+        function markLastActionDone() {
+            const chat = getActiveChat();
+            if (!chat) return;
+            for (let i = chat.messages.length - 1; i >= 0; i--) {
+                if (chat.messages[i].type === 'action') {
+                    if (chat.messages[i].status !== 'done') {
+                        chat.messages[i].status = 'done';
+                        saveChats();
+                        renderChat();
+                    }
+                    break;
+                }
+            }
+        }
+
+        function markLastActionFailed(err) {
+            const chat = getActiveChat();
+            if (!chat) return;
+            let found = false;
+            for (let i = chat.messages.length - 1; i >= 0; i--) {
+                if (chat.messages[i].type === 'action') {
+                    chat.messages[i].status = 'error';
+                    if (err) chat.messages[i].label += ` (Failed)`;
+                    found = true;
+                    saveChats();
+                    renderChat();
+                    break;
+                }
+            }
+            if (!found && err) {
+                addToolCall(`Action failed: ${err}`);
+            }
+        }
+
+        function collapseCurrentTaskToWorkedBox(durationStr) {
+            const chat = getActiveChat();
+            if (!chat || !chat.messages.length) return;
+
+            // Find index of the most recent user message
+            let lastUserIdx = -1;
+            for (let i = chat.messages.length - 1; i >= 0; i--) {
+                if (chat.messages[i].role === 'user') {
+                    lastUserIdx = i;
+                    break;
+                }
+            }
+
+            const searchStart = lastUserIdx >= 0 ? lastUserIdx + 1 : 0;
+            const items = [];
+            const removeIndices = new Set();
+
+            for (let i = searchStart; i < chat.messages.length; i++) {
+                const m = chat.messages[i];
+                if (m.type === 'step_item' || m.type === 'thought' || m.type === 'action' || m.type === 'tool' || m.type === 'screenshot' || m.type === 'ask_user') {
+                    items.push(m);
+                    removeIndices.add(i);
+                }
+            }
+
+            if (items.length === 0) return;
+
+            const firstIdx = Array.from(removeIndices)[0];
+            chat.messages = chat.messages.filter((_, idx) => !removeIndices.has(idx));
+
+            const activityMessage = {
+                role: 'agent',
+                type: 'activity_group',
+                duration: durationStr,
+                title: `Worked for ${durationStr}`,
+                items: items,
+                expanded: false
+            };
+
+            chat.messages.splice(firstIdx, 0, activityMessage);
+            saveChats();
+            renderChat();
+        }
+
+        // ── SCREENSHOT LIGHTBOX MODAL FUNCTIONS (In-Panel Fallback) ──────
+        let modalSanitizedSrc = '';
+        let modalRawSrc = '';
+
+        function openScreenshotModal(sanitizedSrc, rawSrc = '') {
+            modalSanitizedSrc = sanitizedSrc;
+            modalRawSrc = rawSrc;
+
+            const modal = document.getElementById('screenshot-modal');
+            const img = document.getElementById('screenshot-modal-img');
+            const btnRaw = document.getElementById('modal-btn-raw');
+            const btnSanitized = document.getElementById('modal-btn-sanitized');
+            const caption = document.getElementById('screenshot-modal-caption');
+
+            img.src = sanitizedSrc;
+            btnSanitized.classList.add('active');
+            btnRaw.classList.remove('active');
+
+            if (!rawSrc) {
+                btnRaw.style.display = 'none';
+            } else {
+                btnRaw.style.display = 'flex';
+            }
+
+            caption.innerHTML = '🔒 <strong>Click Protected Frame</strong> — Personal information redacted locally on client device';
+            modal.classList.add('visible');
+            setHitTest(true);
+        }
+
+        function switchModalView(mode) {
+            const img = document.getElementById('screenshot-modal-img');
+            const btnSanitized = document.getElementById('modal-btn-sanitized');
+            const btnRaw = document.getElementById('modal-btn-raw');
+            const caption = document.getElementById('screenshot-modal-caption');
+
+            if (mode === 'sanitized') {
+                img.src = modalSanitizedSrc;
+                btnSanitized.classList.add('active');
+                btnRaw.classList.remove('active');
+                caption.innerHTML = '🔒 <strong>Click Protected Frame</strong> — Sensitive items redacted before leaving client device';
+            } else {
+                img.src = modalRawSrc || modalSanitizedSrc;
+                btnRaw.classList.add('active');
+                btnSanitized.classList.remove('active');
+                caption.innerHTML = '👁️ <strong>Raw Capture (Local Client Only)</strong> — Real screen state with sensitive values (never sent to server)';
+            }
+        }
+
+        function closeScreenshotModal(e) {
+            if (e && e.target && e.target.classList.contains('screenshot-modal-img')) {
+                return;
+            }
+            const modal = document.getElementById('screenshot-modal');
+            if (modal) modal.classList.remove('visible');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('screenshot-modal');
+                if (modal && modal.classList.contains('visible')) {
+                    closeScreenshotModal();
+                }
+            }
+        });
+
+        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        // ═══════════════════════════════════════════════════════════
+        // ACTION BUTTON (Close / Stop)
+        // ═══════════════════════════════════════════════════════════
+        function updateActionBtn() {
+            const btn = document.getElementById('action-btn');
+            const icon = document.getElementById('action-btn-icon');
+            if (agentWorking) {
+                btn.classList.add('stop-mode');
+                btn.title = 'Stop';
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-stop');
+            } else {
+                btn.classList.remove('stop-mode');
+                btn.title = 'Close';
+                icon.classList.remove('fa-stop');
+                icon.classList.add('fa-xmark');
+            }
+        }
+
+        function actionBtnClick() {
+            if (agentWorking) {
+                // Stop the agent
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ action: 'stop_agent' }));
+                }
+                // Also stop browser agent if in web mode
+                if (window.electronAPI) {
+                    window.electronAPI.stopBrowserTask();
+                }
+                agentWorking = false;
+                updateActionBtn();
+            } else {
+                closeWindow();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // PANEL & SIDEBAR TOGGLE
+        // ═══════════════════════════════════════════════════════════
+        function togglePanel() {
+            panelOpen = !panelOpen;
+            const panel = document.getElementById('panel-container');
+            const btn = document.getElementById('panel-toggle-btn');
+
+            if (panelOpen) {
+                setPillExpanded(true);
+                panel.classList.add('open');
+                btn.querySelector('i').className = 'fa-solid fa-chevron-up';
+                btn.classList.add('open');
+
+                // Fixed width: 520
+                if (window.electronAPI) {
+                    window.electronAPI.resizeWindow(520, PILL_HEIGHT + PANEL_HEIGHT + 14);
+                }
+            } else {
+                panel.classList.remove('open');
+                btn.querySelector('i').className = 'fa-solid fa-chevron-down';
+                btn.classList.remove('open');
+                if (settingsOpen) toggleSettings();
+                if (sidebarOpen) toggleSidebar();
+
+                if (window.electronAPI) {
+                    window.electronAPI.resizeWindow(520, PILL_HEIGHT);
+                }
+                if (!inputFocused) setPillExpanded(false);
+            }
+        }
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const btn = document.getElementById('sidebar-toggle-btn');
+            sidebar.classList.toggle('open', sidebarOpen);
+            btn?.classList.toggle('active', sidebarOpen);
+        }
+
+        // Auto-close sidebar when clicking free space outside the sidebar
+        document.addEventListener('mousedown', function(e) {
+            if (!sidebarOpen) return;
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && !sidebar.contains(e.target)) {
+                toggleSidebar();
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // PILL EXPAND/COLLAPSE
+        // ═══════════════════════════════════════════════════════════
+        function setPillExpanded(expanded) {
+            document.getElementById('pill-container').classList.toggle('expanded', expanded);
+            document.getElementById('pill-panel-group').classList.toggle('expanded', expanded);
+        }
+
+        function onInputFocus() {
+            inputFocused = true;
+            setPillExpanded(true);
+        }
+
+        function onInputBlur(event) {
+            inputFocused = false;
+            if (panelOpen) return;
+            setTimeout(() => {
+                if (panelOpen || inputFocused) return;
+                setPillExpanded(false);
+                handleMouseLeave();
+            }, 150);
+        }
+
+        function preventInputBlur(event) {
+            const tag = event.target.tagName.toLowerCase();
+            if (tag === 'select' || tag === 'input' || tag === 'button' || tag === 'img' || 
+                tag === 'summary' || tag === 'details' ||
+                event.target.closest('.activity-header') ||
+                event.target.closest('.activity-box') ||
+                event.target.closest('.step-row') ||
+                event.target.closest('.screenshot-card') || 
+                event.target.closest('.screenshot-modal') ||
+                event.target.closest('.modal-btn')) {
+                return;
+            }
+            event.preventDefault();
+        }
+
+        let mouseLeaveTimer = null;
+        function handleMouseLeave() {
+            if (isDragging) return;
+            if (mouseLeaveTimer) clearTimeout(mouseLeaveTimer);
+            mouseLeaveTimer = setTimeout(() => {
+                if (isDragging) return;
+                const pill = document.getElementById('pill-container');
+                const panel = document.getElementById('panel-container');
+                const dh = document.getElementById('drag-handle');
+                const isHovered = (pill && pill.matches(':hover')) ||
+                                  (panel && panel.matches(':hover')) ||
+                                  (dh && dh.matches(':hover'));
+                if (!isHovered && !inputFocused && !settingsOpen) {
+                    setHitTest(false);
+                }
+            }, 80);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // SETTINGS
+        // ═══════════════════════════════════════════════════════════
+        function toggleSettings() {
+            settingsOpen = !settingsOpen;
+            const overlay = document.getElementById('settings-overlay');
+            overlay.classList.toggle('visible', settingsOpen);
+            const btn = document.getElementById('sidebar-settings-btn');
+            btn?.classList.toggle('active', settingsOpen);
+            if (settingsOpen) {
+                fetchElectronKeysStatus();
+            }
+        }
+
+        let electronKeyStore = {
+            nvidia: [],
+            google: [],
+            groq: []
+        };
+
+        function addElectronKeyRow(provider) {
+            if (!electronKeyStore[provider]) return;
+            const box = document.getElementById(`electron-box-${provider}`);
+            if (box) box.open = true;
+
+            electronKeyStore[provider].push({
+                mode: 'key',
+                value: '',
+                isNew: true,
+                isEditing: true
+            });
+            renderElectronProviderKeys(provider);
+        }
+
+        function renderElectronProviderKeys(provider) {
+            const listEl = document.getElementById(`electron-list-${provider}`);
+            const countEl = document.getElementById(`electron-count-${provider}`);
+            if (!listEl) return;
+
+            const items = electronKeyStore[provider] || [];
+            if (countEl) {
+                const activeCount = items.filter(it => it.valid || it.isNew || it.isEditing).length;
+                countEl.textContent = activeCount ? `${activeCount} active` : 'Not configured';
+            }
+
+            listEl.innerHTML = '';
+            if (items.length === 0) {
+                const emptyNotice = document.createElement('div');
+                emptyNotice.className = 'key-empty-notice';
+                emptyNotice.textContent = 'No keys configured. Click + Add to add one.';
+                listEl.appendChild(emptyNotice);
+                return;
+            }
+
+            items.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = `key-entry-row ${item.isEditing ? 'editing' : ''}`;
+
+                if (item.isEditing) {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'key-edit-wrap';
+
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.type = 'button';
+                    toggleBtn.className = 'btn-mode-toggle';
+                    toggleBtn.title = 'Switch between direct key and environment variable';
+                    toggleBtn.innerHTML = `
+                        <span class="mode-label ${item.mode === 'key' ? 'mode-active' : ''}">KEY</span>
+                        <span class="mode-divider">/</span>
+                        <span class="mode-label ${item.mode === 'env' ? 'mode-active' : ''}">ENV</span>
+                    `;
+                    toggleBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        item.mode = item.mode === 'key' ? 'env' : 'key';
+                        input.placeholder = item.mode === 'env' ? 'Env var name (e.g. NVIDIA_API_KEY)' : 'Paste API key...';
+                        toggleBtn.innerHTML = `
+                            <span class="mode-label ${item.mode === 'key' ? 'mode-active' : ''}">KEY</span>
+                            <span class="mode-divider">/</span>
+                            <span class="mode-label ${item.mode === 'env' ? 'mode-active' : ''}">ENV</span>
+                        `;
+                    };
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'key-edit-input';
+                    input.placeholder = item.mode === 'env' ? 'Env var name (e.g. NVIDIA_API_KEY)' : 'Paste API key...';
+                    input.value = item.value || '';
+                    input.autocomplete = 'off';
+                    input.spellcheck = false;
+                    input.oninput = (e) => {
+                        item.value = e.target.value.trim();
+                    };
+
+                    wrap.appendChild(toggleBtn);
+                    wrap.appendChild(input);
+                    row.appendChild(wrap);
+
+                    // Actions: Small right tick icon (save) + cross icon (cancel)
+                    const actions = document.createElement('div');
+                    actions.className = 'key-entry-actions';
+
+                    const saveAction = async () => {
+                        const val = (input.value || '').trim();
+                        if (!val) {
+                            input.focus();
+                            input.style.borderColor = 'rgba(239, 83, 80, 0.6)';
+                            setTimeout(() => { input.style.borderColor = ''; }, 1200);
+                            return;
+                        }
+                        item.value = val;
+                        item.isEditing = false;
+                        item.isNew = false;
+                        renderElectronProviderKeys(provider);
+                        await saveElectronKeyStore();
+                    };
+
+                    const cancelAction = () => {
+                        if (item.isNew) {
+                            electronKeyStore[provider].splice(idx, 1);
+                        } else {
+                            item.value = item.originalValue !== undefined ? item.originalValue : item.value;
+                            item.mode = item.originalMode || item.mode;
+                            item.isEditing = false;
+                        }
+                        renderElectronProviderKeys(provider);
+                    };
+
+                    input.onkeydown = (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveAction();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelAction();
+                        }
+                    };
+
+                    const saveBtn = document.createElement('button');
+                    saveBtn.type = 'button';
+                    saveBtn.className = 'ghost-btn btn-entry-save';
+                    saveBtn.title = 'Save (Enter)';
+                    saveBtn.innerHTML = '<i class="fa-solid fa-check" style="font-size: 11px;"></i>';
+                    saveBtn.onclick = saveAction;
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    cancelBtn.className = 'ghost-btn btn-entry-cancel';
+                    cancelBtn.title = 'Cancel (Esc)';
+                    cancelBtn.innerHTML = '<i class="fa-solid fa-xmark" style="font-size: 11px;"></i>';
+                    cancelBtn.onclick = cancelAction;
+
+                    actions.appendChild(saveBtn);
+                    actions.appendChild(cancelBtn);
+                    row.appendChild(actions);
+
+                    // Auto focus input and place cursor at end
+                    setTimeout(() => {
+                        input.focus();
+                        if (input.setSelectionRange) {
+                            const len = input.value.length;
+                            input.setSelectionRange(len, len);
+                        }
+                    }, 30);
+                } else {
+                    const left = document.createElement('div');
+                    left.className = 'key-entry-left';
+
+                    const modePill = document.createElement('span');
+                    modePill.className = `key-mode-pill ${item.mode === 'env' ? 'env' : ''}`;
+                    modePill.textContent = (item.mode || 'KEY').toUpperCase();
+
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'key-value-text';
+                    valSpan.textContent = item.display || item.masked || '••••••••';
+                    valSpan.title = item.display || item.masked || '';
+
+                    left.appendChild(modePill);
+                    left.appendChild(valSpan);
+                    row.appendChild(left);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'key-entry-actions';
+
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'ghost-btn btn-entry-edit';
+                    editBtn.title = 'Edit key';
+                    editBtn.innerHTML = '<i class="fa-solid fa-pen" style="font-size: 10px;"></i>';
+                    editBtn.onclick = () => {
+                        item.isEditing = true;
+                        item.originalValue = item.value || '';
+                        item.originalMode = item.mode || 'key';
+                        renderElectronProviderKeys(provider);
+                    };
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'ghost-btn btn-entry-remove';
+                    removeBtn.title = 'Remove key';
+                    removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    removeBtn.onclick = async () => {
+                        electronKeyStore[provider].splice(idx, 1);
+                        renderElectronProviderKeys(provider);
+                        await saveElectronKeyStore();
+                    };
+
+                    actions.appendChild(editBtn);
+                    actions.appendChild(removeBtn);
+                    row.appendChild(actions);
+                }
+
+                listEl.appendChild(row);
+            });
+        }
+
+        async function fetchElectronKeysStatus() {
+            try {
+                const resp = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/keys/status`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                isElectronConfigured = !!data.configured;
+
+                ['nvidia', 'google', 'groq'].forEach(p => {
+                    const info = data.keys?.[p];
+                    if (info && Array.isArray(info.items)) {
+                        electronKeyStore[p] = info.items.map(it => ({
+                            index: it.index,
+                            mode: it.mode || 'key',
+                            value: it.value || '',
+                            masked: it.masked || '',
+                            display: it.display || it.masked || '',
+                            valid: it.valid !== false,
+                            isEditing: false,
+                            isNew: false
+                        }));
+                    } else {
+                        electronKeyStore[p] = [];
+                    }
+                    renderElectronProviderKeys(p);
+                });
+
+                const activeChat = getActiveChat();
+                if (!activeChat || activeChat.messages.length === 0) {
+                    renderChat();
+                }
+            } catch (e) {}
+        }
+
+        async function saveElectronKeyStore() {
+            const errEl = document.getElementById('electron-error-feedback');
+            if (errEl) errEl.textContent = '';
+
+            const payload = {
+                nvidia_keys: (electronKeyStore.nvidia || []).filter(it => !it.isEditing || it.value).map(it => ({
+                    mode: it.mode || 'key',
+                    value: it.value || ''
+                })).filter(it => it.value),
+
+                google_keys: (electronKeyStore.google || []).filter(it => !it.isEditing || it.value).map(it => ({
+                    mode: it.mode || 'key',
+                    value: it.value || ''
+                })).filter(it => it.value),
+
+                groq_keys: (electronKeyStore.groq || []).filter(it => !it.isEditing || it.value).map(it => ({
+                    mode: it.mode || 'key',
+                    value: it.value || ''
+                })).filter(it => it.value)
+            };
+
+            try {
+                const resp = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/keys/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await resp.json();
+                if (res.errors && res.errors.length > 0) {
+                    if (errEl) {
+                        errEl.textContent = `⚠️ ${res.errors.join('; ')}`;
+                        setTimeout(() => { if (errEl) errEl.textContent = ''; }, 4000);
+                    }
+                }
+            } catch (err) {
+                if (errEl) {
+                    errEl.textContent = 'Error connecting to server';
+                    setTimeout(() => { if (errEl) errEl.textContent = ''; }, 3000);
+                }
+            } finally {
+                await fetchElectronKeysStatus();
+            }
+        }
+
+        async function resetElectronAllData() {
+            const ok = confirm(
+                '⚠️ Factory Reset Confirmation\n\n' +
+                'This will:\n' +
+                '• Clear all saved chats and history\n' +
+                '• Remove configured API keys from settings\n' +
+                '• Reset Click to a fresh installation state\n\n' +
+                'Are you sure you want to proceed?'
+            );
+            if (!ok) return;
+
+            try {
+                const resp = await fetch(`http://127.0.0.1:${BACKEND_PORT}/api/reset-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clear_chats: true, clear_keys: true })
+                });
+                await resp.json();
+                try { localStorage.removeItem('click_chats'); } catch (e) {}
+                chats = [];
+                activeChatId = null;
+                isElectronConfigured = false;
+                renderSidebar();
+                if (settingsOpen) toggleSettings();
+                await fetchElectronKeysStatus();
+                renderChat();
+                alert('Click has been reset to factory state.');
+            } catch (err) {
+                alert('Error resetting data: ' + err.message);
+            }
+        }
+
+
+        function changeSetting(key, value) {
+            try { localStorage.setItem('command_pilot_' + key, value); } catch (e) {}
+            if (socket && socket.readyState === WebSocket.OPEN)
+                socket.send(JSON.stringify({ action: 'update_setting', key, value }));
+            if (window.electronAPI) {
+                window.electronAPI.sendToBackend('/api/adv_settings', { [key]: value });
+                if (window.electronAPI.updateSetting) {
+                    window.electronAPI.updateSetting(key, value);
+                }
+            }
+        }
+
+        function toggleSettingSwitch(el, key) {
+            const isOn = el.classList.toggle('on');
+            changeSetting(key, isOn ? 'true' : 'false');
+            if (key === 'pilot_always_on_top' && window.electronAPI)
+                window.electronAPI.setAlwaysOnTop(isOn);
+        }
+
+        // Privacy Sanitization toggle — sends command through Electron IPC → bridge → Chrome extension
+        function toggleSanitization(el) {
+            const isOn = el.classList.toggle('on');
+            try { localStorage.setItem('command_pilot_sanitization', isOn ? 'true' : 'false'); } catch (e) {}
+            // Send through Electron IPC → main.js → WebSocket bridge → extension
+            if (window.electronAPI) {
+                window.electronAPI.setSanitization(isOn);
+                if (window.electronAPI.updateSetting) {
+                    window.electronAPI.updateSetting('sanitization', isOn ? 'true' : 'false');
+                }
+            }
+            console.log(`🔧 Sanitization ${isOn ? 'ON ✅' : 'OFF ⚡'}`);
+        }
+
+        function applySettings(settings) {
+            if (!settings) return;
+
+            if (settings.chat_model) {
+                const el = document.getElementById('setting-chat-model');
+                if (el) el.value = settings.chat_model;
+                try { localStorage.setItem('command_pilot_chat_model', settings.chat_model); } catch (e) {}
+            }
+            if (settings.pilot_autonomous_mode) {
+                const el = document.getElementById('setting-task-mode');
+                if (el) el.value = settings.pilot_autonomous_mode;
+                try { localStorage.setItem('command_pilot_pilot_autonomous_mode', settings.pilot_autonomous_mode); } catch (e) {}
+            }
+            if (settings.pilot_max_steps) {
+                const el = document.getElementById('setting-max-steps');
+                if (el) el.value = String(settings.pilot_max_steps);
+                try { localStorage.setItem('command_pilot_pilot_max_steps', String(settings.pilot_max_steps)); } catch (e) {}
+            }
+            if (settings.pilot_visual_history_turns) {
+                const el = document.getElementById('setting-visual-history');
+                if (el) el.value = String(settings.pilot_visual_history_turns);
+                try { localStorage.setItem('command_pilot_pilot_visual_history_turns', String(settings.pilot_visual_history_turns)); } catch (e) {}
+            }
+            if (settings.pilot_auto_screenshot_interval) {
+                const el = document.getElementById('setting-ss-interval');
+                if (el) el.value = String(settings.pilot_auto_screenshot_interval);
+                try { localStorage.setItem('command_pilot_pilot_auto_screenshot_interval', String(settings.pilot_auto_screenshot_interval)); } catch (e) {}
+            }
+            if (settings.pilot_custom_wake_words) {
+                const el = document.getElementById('setting-wake-word');
+                if (el) el.value = settings.pilot_custom_wake_words;
+                try { localStorage.setItem('command_pilot_pilot_custom_wake_words', settings.pilot_custom_wake_words); } catch (e) {}
+            }
+            if (settings.pilot_always_on_top !== undefined) {
+                const el = document.getElementById('setting-always-on-top');
+                const isOn = String(settings.pilot_always_on_top).toLowerCase() === 'true';
+                if (el) el.classList.toggle('on', isOn);
+                try { localStorage.setItem('command_pilot_pilot_always_on_top', isOn ? 'true' : 'false'); } catch (e) {}
+                if (window.electronAPI) window.electronAPI.setAlwaysOnTop(isOn);
+            }
+            if (settings.pilot_voice_activation !== undefined) {
+                const el = document.getElementById('setting-voice-activation');
+                const isOn = String(settings.pilot_voice_activation).toLowerCase() === 'true';
+                if (el) el.classList.toggle('on', isOn);
+                try { localStorage.setItem('command_pilot_pilot_voice_activation', isOn ? 'true' : 'false'); } catch (e) {}
+            }
+            if (settings.sanitization !== undefined) {
+                const el = document.getElementById('setting-sanitization');
+                const isOn = String(settings.sanitization) !== 'false';
+                if (el) el.classList.toggle('on', isOn);
+                try { localStorage.setItem('command_pilot_sanitization', isOn ? 'true' : 'false'); } catch (e) {}
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // MIC, DRAG, INPUT
+        // ═══════════════════════════════════════════════════════════
+        function toggleMic() {
+            micActive = !micActive;
+            const btn = document.getElementById('mic-btn');
+            const icon = document.getElementById('mic-icon');
+            if (micActive) {
+                btn.classList.add('active');
+                icon.className = 'fa-solid fa-microphone';
+                if (socket) socket.send(JSON.stringify({ action: 'toggle_mic', state: true }));
+            } else {
+                btn.classList.remove('active');
+                icon.className = 'fa-solid fa-microphone-slash';
+                if (socket) socket.send(JSON.stringify({ action: 'toggle_mic', state: false }));
+            }
+        }
+
+        let isDragging = false;
+        function setHitTest(active) {
+            if (active && mouseLeaveTimer) {
+                clearTimeout(mouseLeaveTimer);
+                mouseLeaveTimer = null;
+            }
+            mouseOverUI = active;
+            if (!active && isDragging) return;
+            if (window.electronAPI) {
+                window.electronAPI.setIgnoreMouse(!active);
+            }
+        }
+
+        (function () {
+            const dh = document.getElementById('drag-handle');
+            if (!dh) return;
+
+            let rafId = null;
+
+            function onPointerMove() {
+                if (!isDragging) return;
+                if (!rafId) {
+                    rafId = requestAnimationFrame(() => {
+                        rafId = null;
+                        if (isDragging && window.electronAPI) {
+                            window.electronAPI.dragMove();
+                        }
+                    });
+                }
+            }
+
+            function endDrag() {
+                if (!isDragging) return;
+                isDragging = false;
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+                dh.classList.remove('dragging');
+                dh.style.cursor = 'grab';
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', endDrag);
+                window.removeEventListener('pointercancel', endDrag);
+                if (window.electronAPI) {
+                    window.electronAPI.stopDrag();
+                }
+                handleMouseLeave();
+            }
+
+            dh.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return; // Left mouse click only
+                e.preventDefault();
+                isDragging = true;
+                setHitTest(true);
+                dh.classList.add('dragging');
+                dh.style.cursor = 'grabbing';
+
+                // Do NOT call setPointerCapture here — it triggers the synthetic move loop
+                if (window.electronAPI) {
+                    window.electronAPI.startDrag();
+                }
+                window.addEventListener('pointermove', onPointerMove, { passive: true });
+                window.addEventListener('pointerup', endDrag);
+                window.addEventListener('pointercancel', endDrag);
+            });
+        })();
+
+        // Global mouse movement & leave listeners for transparent pass-through
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) return;
+            const target = e.target;
+            const isOverUI = target && (
+                target.closest('#pill-container') ||
+                target.closest('#panel-container') ||
+                target.closest('#drag-handle') ||
+                target.closest('.settings-overlay') ||
+                target.closest('.screenshot-modal')
+            );
+            if (isOverUI) {
+                if (!mouseOverUI) {
+                    setHitTest(true);
+                }
+            } else {
+                if (mouseOverUI && !inputFocused && !settingsOpen) {
+                    handleMouseLeave();
+                }
+            }
+        });
+
+        document.addEventListener('mouseleave', () => {
+            if (!isDragging && !inputFocused && !settingsOpen) {
+                handleMouseLeave();
+            }
+        });
+
+        function handlePillInput(e) {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+                const text = e.target.value.trim();
+                agentWorking = true;
+                updateActionBtn();
+                addMessage('user', text);
+
+                const currentChat = getActiveChat();
+                const chatId = currentChat ? currentChat.id : activeChatId;
+                // Gather previous chat messages for conversational context
+                const chatHistory = currentChat ? currentChat.messages
+                    .filter(m => m.role === 'user' || m.role === 'agent')
+                    .map(m => {
+                        if (m.type === 'activity_group') {
+                            const details = [];
+                            if (m.title) details.push(m.title);
+                            (m.items || []).forEach(it => {
+                                if (it.type === 'action' && it.label) details.push(`Action: ${it.label}`);
+                                if (it.type === 'thought' && it.content) details.push(`Thought: ${it.content}`);
+                                if (it.type === 'ask_user' && it.answer) details.push(`User confirmed: "${it.answer}"`);
+                            });
+                            return { role: 'assistant', content: details.slice(-4).join('; ') };
+                        }
+                        return { role: m.role === 'agent' ? 'assistant' : 'user', content: m.content || '' };
+                    })
+                    .filter(m => m.content && m.content.trim())
+                    : [];
+
+                // Check task mode: if "web" → send through browser agent bridge
+                const taskMode = document.getElementById('setting-task-mode');
+                const isWebMode = taskMode && taskMode.value === 'web';
+
+                if (isWebMode && window.electronAPI) {
+                    taskStartTime = Date.now();
+                    const maxStepsEl = document.getElementById('setting-max-steps');
+                    const maxSteps = maxStepsEl ? parseInt(maxStepsEl.value, 10) : 40;
+                    window.electronAPI.startBrowserTask(text, maxSteps, chatId, chatHistory);
+                } else {
+                    // Default: desktop agent via direct WebSocket
+                    if (socket) socket.send(JSON.stringify({ action: "command_pilot", text, chat_id: chatId, chat_history: chatHistory }));
+                }
+
+                e.target.value = '';
+                if (!panelOpen) togglePanel();
+            }
+        }
+
+        function closeWindow() {
+            if (window.electronAPI) window.electronAPI.closeWindow();
+        }
+
+        // Init chats & keys on load
+        initChats();
+        fetchElectronKeysStatus();
+
+        // ═══════════════════════════════════════════════════════════
+        // BROWSER AGENT — Feed IPC events into existing chat
+        // ═══════════════════════════════════════════════════════════
+        if (window.electronAPI) {
+            // Sync unified chats from extension sidepanel
+            if (window.electronAPI.onSyncChatsFromExt) {
+                window.electronAPI.onSyncChatsFromExt(({ chats: incomingChats, activeChatId: incomingActiveId }) => {
+                    applyRemoteChats(incomingChats, incomingActiveId);
+                });
+            }
+
+            // Zero-latency instant chat switch from extension sidepanel
+            if (window.electronAPI.onSwitchChatFromExt) {
+                window.electronAPI.onSwitchChatFromExt(({ chatId }) => {
+                    if (chatId && chatId !== activeChatId) {
+                        if (chats.some(c => c.id === chatId)) {
+                            activeChatId = chatId;
+                            lastSyncedActiveId = activeChatId;
+                            renderSidebar();
+                            renderChat();
+                        }
+                    }
+                });
+            }
+
+            // Task started from extension sidepanel → mirror into Electron chat!
+            if (window.electronAPI.onBrowserAgentTaskStarted) {
+                window.electronAPI.onBrowserAgentTaskStarted((data) => {
+                    if (data && data.chatId && data.chatId !== activeChatId) {
+                        if (chats.some(c => c.id === data.chatId)) {
+                            activeChatId = data.chatId;
+                        } else {
+                            const newC = { id: data.chatId, title: 'New Chat', messages: [] };
+                            chats.unshift(newC);
+                            activeChatId = data.chatId;
+                        }
+                        lastSyncedActiveId = activeChatId;
+                        renderSidebar();
+                    }
+                    agentWorking = true;
+                    updateActionBtn();
+                    const currentChat = getActiveChat();
+                    const lastMsg = currentChat && currentChat.messages.length ? currentChat.messages[currentChat.messages.length - 1] : null;
+                    if (!lastMsg || lastMsg.content !== data.goal) {
+                        addMessage('user', data.goal);
+                    }
+                    if (!panelOpen) togglePanel();
+                });
+            }
+
+            // Step telemetry → unified Captured image row with compact thumbnail on the right
+            window.electronAPI.onBrowserAgentStep((data) => {
+                if (data && data.chatId && activeChatId && data.chatId !== activeChatId) {
+                    if (chats.some(c => c.id === data.chatId)) {
+                        activeChatId = data.chatId;
+                        renderSidebar();
+                        renderChat();
+                    }
+                }
+                if (!taskStartTime) taskStartTime = Date.now();
+                const sImg = data.sanitizedImage || '';
+                const rImg = data.rawImage || '';
+                const t = data.telemetry || {};
+                const latency = t.redactionLatencyMs || t.totalMs || 0;
+                addStepItem(data.step, latency, sImg, rImg, t);
+
+                if (!panelOpen) togglePanel();
+            });
+
+            // VLM decision → thought text + single neutral action capsule (or interactive ask_user box)
+            window.electronAPI.onBrowserAgentDecision((data) => {
+                if (data && data.chatId && activeChatId && data.chatId !== activeChatId) {
+                    if (chats.some(c => c.id === data.chatId)) {
+                        activeChatId = data.chatId;
+                        renderSidebar();
+                        renderChat();
+                    }
+                }
+                if (data.thought) {
+                    addThought(data.thought);
+                }
+                if (data.tool && data.tool !== 'finish_task') {
+                    if (data.tool === 'ask_user') {
+                        addAskUserMessage(data.args || {});
+                    } else {
+                        const actionLabel = formatAction(data.tool, data.args);
+                        if (actionLabel) {
+                            addActionPill(data.tool, data.args, actionLabel);
+                        }
+                    }
+                }
+            });
+
+            // Direct Ask User prompt from extension or bridge
+            if (window.electronAPI.onBrowserAgentAskUser) {
+                window.electronAPI.onBrowserAgentAskUser((data) => {
+                    if (data && data.chatId && activeChatId && data.chatId !== activeChatId) return;
+                    addAskUserMessage(data || {});
+                });
+            }
+
+            // Task complete → bundle intermediate items into collapsible "Worked for (time)" box & show summary
+            window.electronAPI.onBrowserAgentFinished((data) => {
+                if (data && data.chatId && activeChatId && data.chatId !== activeChatId) {
+                    console.log(`[UI] Ignoring browser agent finish for inactive chat ${data.chatId}`);
+                    return;
+                }
+                agentWorking = false;
+                updateActionBtn();
+                markLastActionDone();
+
+                const elapsedMs = taskStartTime ? (Date.now() - taskStartTime) : 0;
+                taskStartTime = null;
+
+                let durStr = '';
+                if (elapsedMs > 0) {
+                    const sec = elapsedMs / 1000;
+                    if (sec < 60) {
+                        durStr = `${sec.toFixed(1)}s`;
+                    } else {
+                        const m = Math.floor(sec / 60);
+                        const s = Math.round(sec % 60);
+                        durStr = `${m}m ${s}s`;
+                    }
+                }
+
+                collapseCurrentTaskToWorkedBox(durStr || 'a few seconds');
+                addMessage('agent', data.summary || 'Task completed.');
+            });
+
+            // Task stopped event from extension or bridge
+            if (window.electronAPI.onBrowserAgentStopped) {
+                window.electronAPI.onBrowserAgentStopped((data) => {
+                    if (data && data.chatId && activeChatId && data.chatId !== activeChatId) {
+                        return;
+                    }
+                    if (!agentWorking && !taskStartTime) return;
+                    agentWorking = false;
+                    updateActionBtn();
+                    markLastActionDone();
+                    const elapsedMs = taskStartTime ? (Date.now() - taskStartTime) : 0;
+                    taskStartTime = null;
+                    const durStr = elapsedMs > 0 ? `${(elapsedMs / 1000).toFixed(1)}s` : 'a few seconds';
+                    collapseCurrentTaskToWorkedBox(durStr);
+                    addMessage('agent', 'Task stopped.');
+                });
+            }
+
+            // Tool execution result → confirms single action without duplicate bubbles
+            window.electronAPI.onBrowserAgentToolResult((data) => {
+                if (data && data.chatId && activeChatId && data.chatId !== activeChatId) return;
+                if (data.success === false) {
+                    markLastActionFailed(data.result);
+                } else {
+                    markLastActionDone();
+                }
+            });
+
+            // Status notifications
+            if (window.electronAPI.onBrowserAgentStatus) {
+                window.electronAPI.onBrowserAgentStatus((data) => {
+                    if (data && data.chatId && activeChatId && data.chatId !== activeChatId) return;
+                    if (data.message) addToolCall(data.message);
+                });
+            }
+
+            // Error → collapse intermediate steps & show agent message
+            window.electronAPI.onBrowserAgentError((data) => {
+                if (data && data.chatId && activeChatId && data.chatId !== activeChatId) return;
+                agentWorking = false;
+                updateActionBtn();
+                markLastActionFailed(data.message);
+
+                const elapsedMs = taskStartTime ? (Date.now() - taskStartTime) : 0;
+                taskStartTime = null;
+                let durStr = '';
+                if (elapsedMs > 0) durStr = `${(elapsedMs / 1000).toFixed(1)}s`;
+
+                collapseCurrentTaskToWorkedBox(durStr || 'a few seconds');
+                addMessage('agent', data.message || 'An error occurred.');
+            });
+
+            // Listen for remote setting changes from extension
+            if (window.electronAPI.onSyncSettingsFromExt) {
+                window.electronAPI.onSyncSettingsFromExt(({ key, value }) => {
+                    applySettings({ [key]: value });
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Click</title>
+  <link rel="stylesheet" href="../sidepanel/style.css">
+  <style>
+    body {
+      width: 380px;
+      height: 520px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container disconnected" id="appContainer">
+
+    <!-- Top Navigation Panel (Transparent background, free-standing soft drawing icons without boxes) -->
+    <header class="top-nav-panel">
+      <!-- Left: Click Brand (no cursor icon) -->
+      <div class="nav-left">
+        <span class="brand-name">Click</span>
+      </div>
+
+      <!-- Right: Pure soft drawing icons without square or rectangular boxes -->
+      <div class="nav-right" id="navRight">
+        <!-- New Chat Button (+) on left -->
+        <button type="button" class="top-nav-btn" id="newChatBtn" data-tooltip="New Chat">
+          <svg class="top-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+
+        <!-- Chats History Button on right -->
+        <button type="button" class="top-nav-btn" id="chatsToggleBtn" data-tooltip="Previous Chats">
+          <svg class="top-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M12 7v5l4 2" />
+          </svg>
+        </button>
+
+        <!-- Open in Sidepanel Button -->
+        <button type="button" class="top-nav-btn" id="openSidepanelBtn" data-tooltip="Open in Side Panel">
+          <svg class="top-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4" />
+            <line x1="15" y1="3" x2="15" y2="21" />
+          </svg>
+        </button>
+
+        <!-- Settings Button (sleek classic gear icon) -->
+        <button type="button" class="top-nav-btn" id="settingsBtn" data-tooltip="Settings">
+          <svg class="top-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Expandable Previous Chats Tray (Slides down from top when history is clicked) -->
+    <div class="chats-tray-drawer" id="chatsTrayDrawer">
+      <div class="tray-header">
+        <span class="tray-title">Previous Chats</span>
+        <button type="button" class="tray-close-btn" id="trayCloseBtn" data-tooltip="Close Tray">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="tray-chats-list" id="trayChatsList"></div>
+    </div>
+
+    <!-- Main Full-Width Chat Area -->
+    <div class="content-wrapper">
+      <!-- Full UI Disconnected Overlay (Centered with blurred background) -->
+      <div class="connection-overlay" id="connectionNotice">
+        <div class="connection-card">
+          <p class="connection-notice-text">Extension is not connected so please launch it via the launch button or start.bat file</p>
+          <button type="button" class="connection-launch-btn" id="launchAppBtn">
+            <svg class="launch-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span>Launch Click</span>
+          </button>
+        </div>
+      </div>
+
+      <main class="chat-area" id="chatArea">
+
+        <!-- Empty State (No cursor icon above title) -->
+        <div class="chat-empty" id="chatEmpty">
+          <h2 class="empty-title">What would you like Click to do?</h2>
+          <p class="empty-sub">Type a command in the Click bar or pick a suggestion below.</p>
+
+          <!-- Exactly 3 translucent suggestion chips with hover-only refresh button -->
+          <div class="suggestions-container" id="suggestionsContainer">
+            <div class="quick-chips" id="quickChips"></div>
+            <div class="refresh-wrap" id="refreshWrap">
+              <button type="button" class="refresh-btn" id="refreshBtn" data-tooltip="Show new suggestions">
+                <svg class="refresh-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 4v6h-6" />
+                  <path d="M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                <span>refresh</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Stream -->
+        <div class="messages-list" id="messagesList"></div>
+      </main>
+
+      <!-- Settings Overlay (Slides down from top when gear is clicked) -->
+      <div class="settings-overlay" id="settings-overlay">
+        <div class="settings-header">
+          <span class="settings-title">Settings</span>
+          <button type="button" class="settings-close-btn" id="settings-close-btn" data-tooltip="Close Settings">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="settings-body">
+          <div class="settings-group">
+            <div class="settings-group-title">AI Models</div>
+            <div class="setting-row">
+              <span class="setting-label">Chat Model</span>
+              <select class="setting-select" id="setting-chat-model">
+                <option value="muse_glimmer">Muse Glimmer 30B</option>
+                <option value="gemini_3_5">Gemini 3.5 Flash</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-title">Vision Agent</div>
+            <div class="setting-row">
+              <span class="setting-label">Max Steps</span>
+              <select class="setting-select" id="setting-max-steps">
+                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="40" selected>40</option>
+                <option value="60">60</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">Visual History</span>
+              <select class="setting-select" id="setting-visual-history">
+                <option value="1">1 frame (Fastest)</option>
+                <option value="2">2 frames</option>
+                <option value="3" selected>3 frames (Recommended)</option>
+                <option value="5">5 frames (Deep memory)</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label">Privacy Sanitization</span>
+              <div class="setting-toggle on" id="setting-sanitization"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screenshot Lightbox / Modal for captured frames -->
+    <div class="screenshot-modal" id="screenshotModal">
+      <div class="modal-backdrop" id="modalBackdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title" id="modalTitle">Captured Frame</span>
+          <button type="button" class="modal-close-btn" id="modalCloseBtn" data-tooltip="Close">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <img id="modalImg" class="modal-img" src="" alt="Captured Frame" />
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="../sidepanel/panel.js"></script>
+  <script>
+    const openSidepanelBtn = document.getElementById('openSidepanelBtn');
+    if (openSidepanelBtn) {
+      openSidepanelBtn.addEventListener('click', async () => {
+        try {
+          if (chrome.sidePanel && chrome.sidePanel.open) {
+            const win = await chrome.windows.getCurrent();
+            if (win && win.id) {
+              await chrome.sidePanel.open({ windowId: win.id });
+              window.close();
+              return;
+            }
+          }
+        } catch (e) {}
+        chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' }).catch(() => {});
+        window.close();
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Click — Privacy-Preserving Vision Agent",
+  "version": "3.0.0",
+  "description": "Click: ML-powered privacy-preserving vision agent with client-side face detection (ONNX), OCR (Tesseract.js), and autonomous browser tool calling.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "unlimitedStorage",
+    "tabs",
+    "sidePanel",
+    "alarms",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Click"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+U",
+        "windows": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
+      }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "content/pii_rules.js",
+        "content/privacy_shield.js",
+        "content/action_executor.js",
+        "content/visual_overlay.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*", "content/*", "sidepanel/*", "offscreen/*", "models/*", "libs/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

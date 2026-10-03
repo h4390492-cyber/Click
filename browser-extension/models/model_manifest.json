@@ -1,0 +1,29 @@
+{
+  "face_detector": {
+    "name": "Ultra-Light-Fast-Generic-Face-Detector (slim-320)",
+    "file": "version-slim-320.onnx",
+    "source": "https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB",
+    "cdn_url": "https://cdn.jsdelivr.net/gh/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB@master/models/onnx/version-slim-320.onnx",
+    "input_size": [320, 240],
+    "format": "NCHW",
+    "normalization": {"mean": 127, "scale": 128},
+    "outputs": {"scores": "[1, N, 2]", "boxes": "[1, N, 4]"},
+    "bundled": false,
+    "cache": "IndexedDB (auto-cached on first download)",
+    "size_approx_kb": 1100
+  },
+  "ocr": {
+    "engine": "tesseract.js@5.1.1",
+    "languages": ["eng"],
+    "source": "CDN (jsdelivr) — language data auto-cached in IndexedDB",
+    "note": "If COEP blocks CDN fetch, bundle eng.traineddata (~4MB) locally in this directory."
+  },
+  "ner": {
+    "engine": "hybrid_regex_heuristic",
+    "detectable_types": [
+      "aadhaar", "panCard", "creditCard", "email", "phone",
+      "passport", "ifsc", "bankAccount", "address", "name", "token"
+    ],
+    "known_limitation": "Cannot reliably classify arbitrary person names without a trained NER model. Regex patterns detect names only when near contextual labels (e.g., 'Name:', 'Applicant:')."
+  }
+}

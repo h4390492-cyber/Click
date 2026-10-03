@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberCart — Secure Checkout (SIH Benchmark)</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --accent: #58a6ff;
+      --success: #238636;
+      --danger: #da3633;
+      --warning: #f0883e;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(22, 27, 34, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      background: rgba(88, 166, 255, 0.15);
+      border: 1px solid rgba(88, 166, 255, 0.4);
+      color: #58a6ff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 30px;
+      width: 100%;
+    }
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #8b949e;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+    .pii-indicator {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--warning);
+      margin-left: 6px;
+    }
+    .cart-item {
+      display: flex;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .item-img {
+      width: 64px;
+      height: 64px;
+      background: #21262d;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    .item-info {
+      flex: 1;
+    }
+    .item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .item-price {
+      font-size: 14px;
+      color: var(--accent);
+      margin-top: 4px;
+      font-weight: 700;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+    .btn-primary {
+      width: 100%;
+      background: #238636;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover {
+      background: #2ea043;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .alert-box {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 6px;
+      background: rgba(35, 134, 54, 0.15);
+      border: 1px solid rgba(35, 134, 54, 0.4);
+      color: #3fb950;
+      font-size: 13px;
+      display: none;
+    }
+    .test-credentials {
+      background: rgba(88, 166, 255, 0.08);
+      border: 1px dashed rgba(88, 166, 255, 0.3);
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+    .test-credentials strong { color: #58a6ff; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <span>🛒 CyberCart Store</span>
+      <span class="badge">SIH26171 Test Page</span>
+    </div>
+    <div style="font-size: 13px; color: #8b949e;">
+      Status: <strong style="color: #3fb950;">Secure Sandbox Active</strong>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Left: Checkout Form -->
+    <div class="panel">
+      <h2>1. Shipping Information</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fullName">Full Name <span class="pii-indicator">⚠️ PII</span></label>
+          <input type="text" id="fullName" name="fullName" value="Aarav Sharma" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number <span class="pii-indicator">⚠️ PII</span></label>
+          <input type="tel" id="phone" name="phone" value="+91 98765 43210" placeholder="10-digit mobile">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address <span class="pii-indicator">⚠️ PII</span></label>
+        <input type="email" id="email" name="email" value="aarav.sharma@example.com" placeholder="you@domain.com">
+      </div>
+      <div class="form-group">
+        <label for="address">Delivery Address <span class="pii-indicator">⚠️ PII</span></label>
+        <input type="text" id="address" name="address" value="Flat 402, Green Valley Apts, Sector 62, Noida, UP" placeholder="Full address">
+      </div>
+
+      <h2 style="margin-top: 30px;">2. Payment Method (Card & CVV)</h2>
+      <div class="form-group">
+        <label for="cardNumber">Card Number <span class="pii-indicator">⚠️ SENSITIVE FINANCIAL</span></label>
+        <input type="text" id="cardNumber" name="cardNumber" value="4532 8765 1098 3456" autocomplete="cc-number" placeholder="XXXX XXXX XXXX XXXX">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="expiry">Expiry Date</label>
+          <input type="text" id="expiry" name="expiry" value="08/29" placeholder="MM/YY">
+        </div>
+        <div class="form-group">
+          <label for="cvv">CVV / Security Code <span class="pii-indicator">⚠️ HIGHLY SENSITIVE</span></label>
+          <input type="password" id="cvv" name="cvv" value="894" maxlength="4" placeholder="•••">
+        </div>
+      </div>
+
+      <div class="test-credentials">
+        <strong>Judge Demonstration Note:</strong> The fields above contain personal contact info, credit card numbers, and a password/CVV field. When the PrivaPilot extension takes a screenshot, its client-side privacy model masks these fields before transmitting them to the server!
+      </div>
+    </div>
+
+    <!-- Right: Order Summary -->
+    <div class="panel">
+      <h2>Order Summary</h2>
+      <div class="cart-item">
+        <div class="item-img">🎧</div>
+        <div class="item-info">
+          <div class="item-title">Sony WH-1000XM5 ANC Headphones</div>
+          <div style="font-size: 12px; color: #8b949e;">Color: Midnight Black</div>
+          <div class="item-price">₹26,990</div>
+        </div>
+      </div>
+      <div class="cart-item">
+        <div class="item-img">⌨️</div>
+        <div class="item-info">
+          <div class="item-title">Keychron K2 Mechanical Keyboard</div>
+          <div style="font-size: 12px; color: #8b949e;">Switches: Gateron Brown</div>
+          <div class="item-price">₹7,499</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <div class="summary-row">
+          <span style="color: #8b949e;">Subtotal</span>
+          <span>₹34,489</span>
+        </div>
+        <div class="summary-row">
+          <span style="color: #8b949e;">Shipping</span>
+          <span style="color: #3fb950;">FREE</span>
+        </div>
+        <div class="summary-row">
+          <span style="color: #8b949e;">Tax (GST 18%)</span>
+          <span>₹6,208</span>
+        </div>
+        <div class="summary-total">
+          <span>Grand Total</span>
+          <span style="color: #58a6ff;">₹40,697</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="placeOrderBtn" onclick="handlePlaceOrder()">
+        🔒 Place Order & Pay ₹40,697
+      </button>
+
+      <div class="alert-box" id="successAlert">
+        🎉 <strong>Order Successfully Placed!</strong><br>
+        Order ID: #ORD-984210. Thank you, Aarav!
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function handlePlaceOrder() {
+      const btn = document.getElementById('placeOrderBtn');
+      const alert = document.getElementById('successAlert');
+      btn.innerText = '⏳ Processing Payment...';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerText = '✅ Order Confirmed';
+        btn.style.background = '#238636';
+        alert.style.display = 'block';
+        console.log('Order processed successfully for Aarav Sharma');
+      }, 900);
+    }
+  </script>
+</body>
+</html>

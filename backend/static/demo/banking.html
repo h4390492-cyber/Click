@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Bank of India — e-KYC & Fund Transfer (SIH Benchmark)</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+    header {
+      background: #111827;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .bank-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 26px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    h2 {
+      font-size: 17px;
+      color: #fff;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+    .pii-tag {
+      color: #f59e0b;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    input {
+      width: 100%;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+    }
+    .balance-card {
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+      border: 1px solid #3b82f6;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .balance-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #93c5fd;
+    }
+    .balance-amount {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 6px;
+    }
+    .account-num {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-top: 6px;
+      font-family: monospace;
+    }
+    .btn-transfer {
+      width: 100%;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: background 0.2s;
+    }
+    .btn-transfer:hover {
+      background: #1d4ed8;
+    }
+    .alert-success {
+      display: none;
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="bank-logo">
+      🏛️ Apex Bank of India
+    </div>
+    <div style="font-size: 12px; color: #9ca3af;">
+      Session ID: <span style="font-family: monospace; color: #60a5fa;">APX-849204-KYC</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Left: KYC Details -->
+    <div class="card">
+      <h2>National Identity & KYC Verification</h2>
+
+      <div class="form-group">
+        <label for="fullName">Account Holder Name <span class="pii-tag">⚠️ PII</span></label>
+        <input type="text" id="fullName" value="Priya Harshvardhan" readonly>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div class="form-group">
+          <label for="panCard">PAN Card Number <span class="pii-tag">⚠️ INDIAN ID</span></label>
+          <input type="text" id="panCard" value="ABCDE1234F" placeholder="5 letters, 4 digits, 1 letter">
+        </div>
+        <div class="form-group">
+          <label for="aadhaar">Aadhaar UIDAI <span class="pii-tag">⚠️ BIOMETRIC PII</span></label>
+          <input type="text" id="aadhaar" value="5412 8794 3210" placeholder="12-digit UID">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="beneficiary">Beneficiary Account Number <span class="pii-tag">⚠️ FINANCIAL PII</span></label>
+        <input type="text" id="beneficiary" value="9871020048123" placeholder="Account Number">
+      </div>
+
+      <div class="form-group">
+        <label for="ifsc">IFSC Code</label>
+        <input type="text" id="ifsc" value="APEX0001402">
+      </div>
+
+      <div class="form-group">
+        <label for="transferAmount">Transfer Amount (INR)</label>
+        <input type="number" id="transferAmount" value="5000">
+      </div>
+
+      <div class="form-group">
+        <label for="txPassword">Transaction Password <span class="pii-tag">⚠️ SECRET CREDENTIAL</span></label>
+        <input type="password" id="txPassword" value="SuperSecretPass123!" placeholder="Enter secret password">
+      </div>
+
+      <button class="btn-transfer" id="btnSendFunds" onclick="submitTransfer()">
+        Confirm NEFT Transfer
+      </button>
+
+      <div class="alert-success" id="txAlert">
+        ✅ <strong>₹5,000 Transferred Successfully!</strong> UTR: <code>APXN261710984</code>
+      </div>
+    </div>
+
+    <!-- Right: Account Overview -->
+    <div>
+      <div class="balance-card">
+        <div class="balance-title">Savings Account Balance</div>
+        <div class="balance-amount">₹ 1,48,250.00</div>
+        <div class="account-num">A/C: 1089 4521 8832</div>
+      </div>
+
+      <div class="card">
+        <h2>Privacy Filter Check</h2>
+        <p style="font-size: 13px; color: #9ca3af; line-height: 1.6;">
+          This portal displays real Indian KYC identifiers:
+        </p>
+        <ul style="font-size: 12px; color: #d1d5db; margin: 12px 0 12px 20px; line-height: 1.8;">
+          <li>Aadhaar: <code>5412 8794 3210</code></li>
+          <li>PAN Card: <code>ABCDE1234F</code></li>
+          <li>Transaction Password: <code>••••••••••••</code></li>
+        </ul>
+        <p style="font-size: 12px; color: #10b981;">
+          🛡️ The PrivaPilot client model redacts all three on the canvas before the central agent receives the frame.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function submitTransfer() {
+      const btn = document.getElementById('btnSendFunds');
+      const alertBox = document.getElementById('txAlert');
+      btn.innerText = 'Verifying with Bank...';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerText = 'Transfer Complete';
+        btn.style.background = '#10b981';
+        alertBox.style.display = 'block';
+        console.log('Transfer executed securely for Priya Harshvardhan');
+      }, 800);
+    }
+  </script>
+</body>
+</html>

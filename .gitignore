@@ -1,0 +1,55 @@
+# ==========================================
+# Click - Git Ignore Rules
+# ==========================================
+
+# 1. API Keys & Secrets (NEVER COMMIT REAL SECRETS)
+backend/api_keys.py
+backend/user_keys.json
+user_keys.json
+.env
+*.env
+backend/.env
+
+# 2. Local User Data & History
+chats.json
+backend/chats.json
+
+# 3. Node & Electron Dependencies
+node_modules/
+electron/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 4. Python Bytecode, Caches & Setup Flags
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+backend/.installed
+.venv/
+venv/
+ENV/
+
+# 5. Build Artifacts & Large Binaries
+dist/
+build/
+*.exe
+*.dmg
+*.zip
+*.tar.gz
+
+# 6. Temporary Test Captures & Overlays
+backend/test_*_overlay.jpg
+backend/test_*.png
+backend/*.log
+scratch/
+
+# 7. Operating System & IDE Files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo

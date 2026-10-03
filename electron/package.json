@@ -1,0 +1,18 @@
+{
+    "name": "click",
+    "version": "1.0.0",
+    "description": "Click — Standalone AI Desktop Assistant",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "dev": "electron . --dev"
+    },
+    "author": "HERO",
+    "license": "MIT",
+    "devDependencies": {
+        "electron": "^28.0.0"
+    },
+    "dependencies": {
+        "ws": "^8.21.3"
+    }
+}

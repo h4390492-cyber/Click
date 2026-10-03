@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Click — Context Inspector</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-base: #09090b;
+            --bg-surface: #121215;
+            --bg-hover: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            --text-main: #f4f4f5;
+            --text-sub: #a1a1aa;
+            --text-muted: #71717a;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        html, body {
+            width: 100%; height: 100%;
+            background: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font);
+            overflow: hidden;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── MINIMAL TITLEBAR ────────────────────────────────────── */
+        .titlebar {
+            height: 42px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            -webkit-app-region: drag;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            -webkit-app-region: no-drag;
+        }
+
+        .win-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-sub);
+            letter-spacing: 0.2px;
+        }
+
+        /* Minimal Capsule Segment Control */
+        .titlebar-center {
+            display: flex;
+            align-items: center;
+            -webkit-app-region: no-drag;
+        }
+
+        .segment-control {
+            display: flex;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .segment-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            font-size: 11.5px;
+            font-weight: 500;
+            padding: 4px 14px;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: var(--font);
+        }
+
+        .segment-btn:hover {
+            color: var(--text-main);
+            background: var(--bg-hover);
+        }
+
+        .segment-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .titlebar-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            -webkit-app-region: no-drag;
+        }
+
+        /* Capsule Toolbar Buttons (no background by default, capsule hover) */
+        .capsule-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .capsule-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .capsule-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-main);
+        }
+
+        .capsule-btn.labeled {
+            width: auto;
+            padding: 0 10px;
+            font-size: 11.5px;
+            font-weight: 500;
+            gap: 6px;
+            font-family: var(--font);
+        }
+
+        .zoom-display {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-sub);
+            padding: 0 6px;
+            min-width: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .zoom-display:hover {
+            color: var(--text-main);
+        }
+
+        .divider {
+            width: 1px;
+            height: 14px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        /* Window controls */
+        .win-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .win-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-main);
+        }
+
+        .win-btn.close:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+
+        /* ── VIEWPORT ─────────────────────────────────────────────── */
+        .viewport {
+            flex: 1;
+            position: relative;
+            background: #000000;
+            overflow: hidden;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .viewport:active {
+            cursor: grabbing;
+        }
+
+        .image-container {
+            position: absolute;
+            transform-origin: center center;
+            transition: transform 0.05s linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+        }
+
+        .main-image {
+            max-width: none;
+            max-height: none;
+            border-radius: 8px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            image-rendering: -webkit-optimize-contrast;
+            pointer-events: none;
+        }
+
+        /* Minimal Toast */
+        .toast {
+            position: absolute;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%) translateY(14px);
+            background: rgba(24, 24, 27, 0.95);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+            color: var(--text-main);
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 11.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 200;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* ── STATUSBAR ────────────────────────────────────────────── */
+        .statusbar {
+            height: 26px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+            font-size: 11px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .statusbar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── MINIMAL TITLEBAR ─────────────────────────────────── -->
+    <header class="titlebar">
+        <div class="titlebar-left">
+            <span class="win-title" id="win-title">Click — Context Inspector</span>
+        </div>
+
+        <div class="titlebar-center">
+            <div class="segment-control">
+                <button class="segment-btn active" id="btn-sanitized" onclick="switchView('sanitized')">Sanitized</button>
+                <button class="segment-btn" id="btn-raw" onclick="switchView('raw')">Original</button>
+            </div>
+        </div>
+
+        <div class="titlebar-right">
+            <div class="capsule-group">
+                <button class="capsule-btn" onclick="zoomStep(-0.25)" title="Zoom Out">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <span class="zoom-display" id="zoom-label" onclick="resetZoom()" title="Reset Zoom">100%</span>
+                <button class="capsule-btn" onclick="zoomStep(0.25)" title="Zoom In">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+                <button class="capsule-btn labeled" onclick="fitToWindow()" title="Fit">
+                    Fit
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="capsule-group">
+                <button class="capsule-btn" onclick="copyImageToClipboard()" title="Copy">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+                <button class="capsule-btn" onclick="saveImageToFile()" title="Save">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="capsule-group">
+                <button class="win-btn" onclick="minimizeWindow()" title="Minimize">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <button class="win-btn" onclick="maximizeWindow()" title="Maximize">
+                    <i class="fa-regular fa-square"></i>
+                </button>
+                <button class="win-btn close" onclick="closeWindow()" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── VIEWPORT ─────────────────────────────────────────── -->
+    <main class="viewport" id="viewport">
+        <div class="image-container" id="image-container">
+            <img class="main-image" id="main-image" src="" alt="" />
+        </div>
+
+        <div class="toast" id="toast">
+            <span id="toast-text"></span>
+        </div>
+    </main>
+
+    <!-- ── STATUSBAR ────────────────────────────────────────── -->
+    <footer class="statusbar">
+        <div class="statusbar-item">
+            <span id="status-resolution"></span>
+        </div>
+        <div class="statusbar-item">
+            <span id="status-step"></span>
+        </div>
+    </footer>
+
+    <!-- ── SCRIPT ───────────────────────────────────────────── -->
+    <script>
+        let sanitizedDataUrl = '';
+        let rawDataUrl = '';
+        let currentMode = 'sanitized';
+
+        // Pan & Zoom State
+        let scale = 1.0;
+        let translateX = 0;
+        let translateY = 0;
+        let isPanning = false;
+        let startX = 0;
+        let startY = 0;
+        let naturalWidth = 0;
+        let naturalHeight = 0;
+
+        const viewport = document.getElementById('viewport');
+        const imgContainer = document.getElementById('image-container');
+        const mainImg = document.getElementById('main-image');
+        const zoomLabel = document.getElementById('zoom-label');
+        const statusRes = document.getElementById('status-resolution');
+        const statusStep = document.getElementById('status-step');
+        const btnSanitized = document.getElementById('btn-sanitized');
+        const btnRaw = document.getElementById('btn-raw');
+        const winTitle = document.getElementById('win-title');
+
+        function normalizeDataUrl(b64) {
+            if (!b64 || typeof b64 !== 'string') return '';
+            const clean = b64.trim();
+            if (!clean) return '';
+            if (clean.startsWith('data:')) return clean;
+            return `data:image/jpeg;base64,${clean}`;
+        }
+
+        if (window.viewerAPI && window.viewerAPI.onLoadScreenshot) {
+            window.viewerAPI.onLoadScreenshot((payload) => {
+                sanitizedDataUrl = normalizeDataUrl(payload.sanitized || '');
+                rawDataUrl = normalizeDataUrl(payload.raw || '');
+
+                if (payload.step) {
+                    winTitle.textContent = `Step ${payload.step}`;
+                    statusStep.textContent = `Step ${payload.step}`;
+                } else {
+                    winTitle.textContent = 'Preview';
+                    statusStep.textContent = '';
+                }
+
+                if (!rawDataUrl) {
+                    btnRaw.style.opacity = '0.35';
+                    btnRaw.style.cursor = 'default';
+                } else {
+                    btnRaw.style.opacity = '1';
+                    btnRaw.style.cursor = 'pointer';
+                }
+
+                switchView('sanitized', true);
+            });
+        }
+
+        function switchView(mode, forceReset = false) {
+            currentMode = mode;
+            if (mode === 'sanitized') {
+                btnSanitized.classList.add('active');
+                btnRaw.classList.remove('active');
+                mainImg.src = sanitizedDataUrl || rawDataUrl;
+            } else {
+                if (!rawDataUrl) {
+                    showToast('Original capture not available');
+                    return;
+                }
+                btnRaw.classList.add('active');
+                btnSanitized.classList.remove('active');
+                mainImg.src = rawDataUrl;
+            }
+
+            mainImg.onload = () => {
+                naturalWidth = mainImg.naturalWidth;
+                naturalHeight = mainImg.naturalHeight;
+                statusRes.textContent = `${naturalWidth} × ${naturalHeight}`;
+                if (forceReset) {
+                    fitToWindow();
+                }
+            };
+        }
+
+        // Pan & Zoom Engine
+        function updateTransform() {
+            imgContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+        }
+
+        function fitToWindow() {
+            if (!naturalWidth || !naturalHeight) return;
+            const vw = viewport.clientWidth - 40;
+            const vh = viewport.clientHeight - 40;
+            const scaleX = vw / naturalWidth;
+            const scaleY = vh / naturalHeight;
+            scale = Math.min(1.0, Math.min(scaleX, scaleY));
+            scale = Math.max(0.1, scale);
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        }
+
+        function resetZoom() {
+            scale = 1.0;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        }
+
+        function zoomStep(delta) {
+            scale = Math.max(0.1, Math.min(5.0, scale + delta));
+            updateTransform();
+        }
+
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left - rect.width / 2;
+            const mouseY = e.clientY - rect.top - rect.height / 2;
+
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+            const nextScale = Math.max(0.1, Math.min(5.0, scale * zoomFactor));
+
+            translateX = mouseX - (mouseX - translateX) * (nextScale / scale);
+            translateY = mouseY - (mouseY - translateY) * (nextScale / scale);
+            scale = nextScale;
+            updateTransform();
+        }, { passive: false });
+
+        viewport.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            isPanning = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isPanning = false;
+        });
+
+        viewport.addEventListener('dblclick', () => {
+            if (Math.abs(scale - 1.0) < 0.05) {
+                fitToWindow();
+            } else {
+                resetZoom();
+            }
+        });
+
+        function copyImageToClipboard() {
+            const currentUrl = currentMode === 'sanitized' ? sanitizedDataUrl : (rawDataUrl || sanitizedDataUrl);
+            if (!currentUrl) return;
+
+            if (window.viewerAPI && window.viewerAPI.copyImage) {
+                window.viewerAPI.copyImage(currentUrl);
+                showToast('Copied to clipboard');
+            }
+        }
+
+        function saveImageToFile() {
+            const currentUrl = currentMode === 'sanitized' ? sanitizedDataUrl : (rawDataUrl || sanitizedDataUrl);
+            if (!currentUrl) return;
+
+            if (window.viewerAPI && window.viewerAPI.saveImage) {
+                window.viewerAPI.saveImage(currentUrl);
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function closeWindow() {
+            if (window.viewerAPI) window.viewerAPI.closeWindow();
+        }
+
+        function minimizeWindow() {
+            if (window.viewerAPI) window.viewerAPI.minimizeWindow();
+        }
+
+        function maximizeWindow() {
+            if (window.viewerAPI) window.viewerAPI.maximizeWindow();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeWindow();
+            else if (e.key === '1') switchView('sanitized');
+            else if (e.key === '2') switchView('raw');
+            else if (e.key === '0' || (e.ctrlKey && e.key === '0')) fitToWindow();
+            else if (e.key === '+' || e.key === '=') zoomStep(0.2);
+            else if (e.key === '-') zoomStep(-0.2);
+            else if (e.ctrlKey && e.key.toLowerCase() === 'c') copyImageToClipboard();
+            else if (e.ctrlKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                saveImageToFile();
+            }
+        });
+    </script>
+</body>
+</html>

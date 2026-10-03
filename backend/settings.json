@@ -1,0 +1,13 @@
+{
+  "pilot_always_on_top": "true",
+  "pilot_voice_activation": "true",
+  "pilot_custom_wake_words": "hero",
+  "pilot_auto_screenshot_interval": 3,
+  "pilot_max_steps": "40",
+  "pilot_visual_history_turns": 3,
+  "pilot_autonomous_mode": "web",
+  "pilot_voice": false,
+  "pilot_work_with_discussion": true,
+  "chat_model": "gemini_3_5",
+  "pilot_opacity": "60"
+}

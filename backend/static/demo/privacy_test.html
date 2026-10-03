@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivaPilot — ML Privacy Engine Test Page (SIH26171)</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #e2e8f0; --accent: #38bdf8; --success: #34d399;
+      --danger: #f87171; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 20px; line-height: 1.6;
+    }
+    h1 { color: var(--accent); font-size: 22px; margin-bottom: 8px; }
+    .subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; margin: 0 auto; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; position: relative;
+    }
+    .card-title { font-weight: 700; font-size: 14px; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; }
+    .badge-green { background: rgba(52,211,153,0.15); color: var(--success); border: 1px solid rgba(52,211,153,0.3); }
+    .badge-red { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.3); }
+    .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); border: 1px solid rgba(167,139,250,0.3); }
+    label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; margin-top: 10px; }
+    input, textarea {
+      width: 100%; padding: 8px 12px; border-radius: 6px;
+      border: 1px solid var(--border); background: #0f172a; color: var(--text);
+      font-size: 13px; outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    .pii-text { background: rgba(248,113,113,0.1); border: 1px dashed var(--danger); border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; line-height: 1.8; }
+    .pii-highlight { background: rgba(248,113,113,0.25); padding: 1px 4px; border-radius: 3px; color: #fca5a5; }
+    .ground-truth { margin-top: 16px; padding: 12px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; }
+    .ground-truth h4 { font-size: 11px; color: var(--success); letter-spacing: 0.5px; margin-bottom: 6px; }
+    .ground-truth ul { list-style: none; font-size: 11px; color: #94a3b8; }
+    .ground-truth li { padding: 2px 0; }
+    .ground-truth li::before { content: '✓ '; color: var(--success); }
+    .face-container { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+    .face-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+    .profile-section { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+    .profile-info { flex: 1; }
+    .profile-info p { font-size: 12px; color: #94a3b8; margin: 2px 0; }
+    .profile-info .name { font-size: 16px; font-weight: 700; color: var(--text); }
+    .scanned-id { margin-top: 10px; background: #fff; border-radius: 8px; padding: 16px; color: #1e293b; font-size: 12px; }
+    .scanned-id .id-title { font-weight: 700; color: #0369a1; font-size: 14px; margin-bottom: 8px; }
+    .scanned-id .id-field { display: flex; justify-content: space-between; margin: 4px 0; }
+    .scanned-id .id-label { color: #64748b; }
+    .scanned-id .id-value { font-weight: 600; }
+    button.action-btn {
+      margin-top: 12px; padding: 8px 20px; border-radius: 6px; border: none;
+      background: var(--accent); color: #0f172a; font-weight: 600; cursor: pointer;
+      font-size: 12px; transition: background 0.2s;
+    }
+    button.action-btn:hover { background: #7dd3fc; }
+    .address-block { margin-top: 10px; padding: 12px; background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.15); border-radius: 6px; font-size: 13px; }
+    .full-width { grid-column: 1 / -1; }
+    .metrics-strip {
+      grid-column: 1 / -1; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .metric-chip { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <h1>🛡️ PrivaPilot — ML Privacy Engine Ground Truth Test Page</h1>
+  <p class="subtitle">This page contains known PII across all detection layers. Use it to validate recall, precision, and IoU of the 3-layer privacy pipeline.</p>
+
+  <div class="grid">
+
+    <!-- ═══════ CARD 1: Form Fields (Layer 1 — DOM Scan) ═══════ -->
+    <div class="card">
+      <div class="card-title">📋 Form Fields <span class="badge badge-green">LAYER 1 — DOM</span></div>
+
+      <label>Full Name</label>
+      <input type="text" id="fullName" name="name" value="Rohit Sharma" placeholder="Full Name">
+
+      <label>Email</label>
+      <input type="email" id="email" name="email" value="rohit.sharma@example.com">
+
+      <label>Phone</label>
+      <input type="tel" id="phone" name="phone" value="+91 9876543210">
+
+      <label>Password</label>
+      <input type="password" id="password" name="password" value="SuperSecret@2024">
+
+      <label>Aadhaar Number</label>
+      <input type="text" id="aadhaar" name="aadhaar" value="2345 6789 0123">
+
+      <label>PAN Card</label>
+      <input type="text" id="pan" name="pan" value="ABCDE1234F">
+
+      <label>Credit Card</label>
+      <input type="text" id="cardNumber" name="card_number" autocomplete="cc-number" value="4539 1488 0343 6467">
+
+      <label>CVV</label>
+      <input type="text" id="cvv" name="cvv" value="742">
+
+      <div class="ground-truth">
+        <h4>GROUND TRUTH — Expected Detections (8)</h4>
+        <ul>
+          <li>password → #password</li>
+          <li>email → #email (input[type=email])</li>
+          <li>phone → #phone (input[type=tel])</li>
+          <li>aadhaar → #aadhaar (input[name*=aadhaar])</li>
+          <li>panCard → #pan (input[name*=pan])</li>
+          <li>creditCard → #cardNumber (autocomplete=cc-number, Luhn valid)</li>
+          <li>password → #cvv (input[name*=cvv])</li>
+          <li>name → #fullName (input[name*=name]) — contextual only</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ═══════ CARD 2: Rendered Text PII (Layer 1 — Text Node Scan) ═══════ -->
+    <div class="card">
+      <div class="card-title">📝 Rendered Text PII <span class="badge badge-green">LAYER 1 — TEXT</span></div>
+
+      <div class="pii-text">
+        <strong>Applicant Details:</strong><br>
+        Name: <span class="pii-highlight">Priya Patel</span><br>
+        Aadhaar: <span class="pii-highlight">9876 5432 1098</span><br>
+        PAN: <span class="pii-highlight">CXYPD5432K</span><br>
+        Email: <span class="pii-highlight">priya.patel@gmail.com</span><br>
+        Mobile: <span class="pii-highlight">+91 8765432109</span><br>
+        IFSC Code: <span class="pii-highlight">SBIN0001234</span><br>
+        <br>
+        <strong>Residential Address:</strong><br>
+        <span class="pii-highlight">42, Mahatma Gandhi Road, Lajpat Nagar, Block-D, New Delhi, Delhi 110024</span>
+      </div>
+
+      <div class="pii-text" style="margin-top: 8px;">
+        <strong>Transaction Reference:</strong><br>
+        API Token: <span class="pii-highlight">sk_dummy_test_token_1234567890abcdef</span><br>
+        JWT: <span class="pii-highlight">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0</span>
+      </div>
+
+      <div class="ground-truth">
+        <h4>GROUND TRUTH — Expected Detections (9+)</h4>
+        <ul>
+          <li>aadhaar → "9876 5432 1098" (text node regex)</li>
+          <li>panCard → "CXYPD5432K" (text node regex)</li>
+          <li>email → "priya.patel@gmail.com" (text node regex)</li>
+          <li>phone → "+91 8765432109" (text node regex)</li>
+          <li>ifsc → "SBIN0001234" (text node regex, banking context)</li>
+          <li>name → "Priya Patel" (near "Name:" label — contextual)</li>
+          <li>address → "42, Mahatma Gandhi Road..." (contains "Road", "Block", "Nagar")</li>
+          <li>token → "sk_dummy_..." (API key pattern)</li>
+          <li>token → "eyJhbG..." (JWT pattern)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ═══════ CARD 3: Face Images (Layer 2 — ONNX Face Detection) ═══════ -->
+    <div class="card">
+      <div class="card-title">👤 Face Detection <span class="badge badge-purple">LAYER 2 — ONNX</span></div>
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">These images contain human faces that should be detected by the ONNX Ultra-Light face model and blurred with StackBlur.</p>
+
+      <div class="profile-section">
+        <img class="face-img" id="profileAvatar"
+             src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23e0e7ff'/><circle cx='50' cy='40' r='22' fill='%23d4a373'/><path d='M28 35 Q50 12 72 35 Q65 22 50 20 Q35 22 28 35 Z' fill='%231e293b'/><circle cx='43' cy='38' r='3' fill='%231e293b'/><circle cx='57' cy='38' r='3' fill='%231e293b'/><path d='M47 45 Q50 48 53 45' stroke='%231e293b' stroke-width='2' fill='none'/><path d='M43 52 Q50 58 57 52' stroke='%23b91c1c' stroke-width='2' fill='none'/><path d='M20 95 Q20 70 50 70 Q80 70 80 95 Z' fill='%233b82f6'/></svg>"
+             alt="Profile photo of Arjun Mehta">
+        <div class="profile-info">
+          <div class="name">Arjun Mehta</div>
+          <p>Senior Software Engineer</p>
+          <p>arjun.mehta@techcorp.io</p>
+          <p>+91 7654321098</p>
+        </div>
+      </div>
+
+      <div class="face-container">
+        <img class="face-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23fce7f3'/><circle cx='50' cy='42' r='21' fill='%23fcd5ce'/><path d='M24 45 Q50 10 76 45 Q78 70 70 75 Q68 50 66 40 Q50 25 34 40 Q32 50 30 75 Q22 70 24 45 Z' fill='%2378350f'/><circle cx='43' cy='40' r='3' fill='%231e293b'/><circle cx='57' cy='40' r='3' fill='%231e293b'/><path d='M44 53 Q50 58 56 53' stroke='%23e11d48' stroke-width='2.5' fill='none'/><path d='M22 95 Q22 72 50 72 Q78 72 78 95 Z' fill='%23ec4899'/></svg>" alt="Team member 1">
+        <img class="face-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23dcfce7'/><circle cx='50' cy='42' r='22' fill='%23c68642'/><path d='M27 34 Q50 16 73 34 Q65 24 50 22 Q35 24 27 34 Z' fill='%230f172a'/><circle cx='42' cy='40' r='3' fill='%231e293b'/><circle cx='58' cy='40' r='3' fill='%231e293b'/><circle cx='42' cy='40' r='6' stroke='%23334155' stroke-width='2' fill='none'/><circle cx='58' cy='40' r='6' stroke='%23334155' stroke-width='2' fill='none'/><line x1='48' y1='40' x2='52' y2='40' stroke='%23334155' stroke-width='2'/><path d='M45 54 Q50 59 55 54' stroke='%231e293b' stroke-width='2' fill='none'/><path d='M20 95 Q20 72 50 72 Q80 72 80 95 Z' fill='%23059669'/></svg>" alt="Team member 2">
+        <img class="face-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23fef3c7'/><circle cx='50' cy='42' r='21' fill='%23e0ac69'/><path d='M26 40 Q50 14 74 40 Q76 65 68 70 Q66 48 64 38 Q50 26 36 38 Q34 48 32 70 Q24 65 26 40 Z' fill='%23451a03'/><circle cx='43' cy='40' r='3' fill='%231e293b'/><circle cx='57' cy='40' r='3' fill='%231e293b'/><path d='M45 53 Q50 57 55 53' stroke='%23b45309' stroke-width='2' fill='none'/><path d='M22 95 Q22 72 50 72 Q78 72 78 95 Z' fill='%23f59e0b'/></svg>" alt="Team member 3">
+      </div>
+
+      <div class="ground-truth">
+        <h4>GROUND TRUTH — Expected Detections (4 faces + PII)</h4>
+        <ul>
+          <li>face_ml → Large profile photo (ONNX detection)</li>
+          <li>face_ml → 3 team member photos (ONNX detection)</li>
+          <li>face → Profile avatar (CSS class heuristic fallback)</li>
+          <li>email → "arjun.mehta@techcorp.io" (text node)</li>
+          <li>phone → "+91 7654321098" (text node)</li>
+          <li>name → "Arjun Mehta" (contextual — near profile)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ═══════ CARD 4: Scanned Document (Layer 3 — Tesseract OCR) ═══════ -->
+    <div class="card">
+      <div class="card-title">🔍 Scanned Document PII <span class="badge badge-red">LAYER 3 — OCR</span></div>
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">This simulates a scanned ID card rendered as DOM (text-as-pixels scenario). Tesseract OCR should extract and classify PII from the screenshot pixels.</p>
+
+      <div class="scanned-id" data-testid="scanned-aadhaar">
+        <div class="id-title">🇮🇳 GOVERNMENT OF INDIA — AADHAAR CARD</div>
+        <div class="id-field"><span class="id-label">Name:</span> <span class="id-value">SANJAY KUMAR GUPTA</span></div>
+        <div class="id-field"><span class="id-label">DOB:</span> <span class="id-value">15/03/1985</span></div>
+        <div class="id-field"><span class="id-label">Gender:</span> <span class="id-value">Male</span></div>
+        <div class="id-field"><span class="id-label">Aadhaar No:</span> <span class="id-value">5678 1234 9012</span></div>
+        <div class="id-field"><span class="id-label">Address:</span> <span class="id-value">123, Vikas Nagar, Kanpur, UP 208024</span></div>
+      </div>
+
+      <div class="scanned-id" style="margin-top: 8px;" data-testid="scanned-pan">
+        <div class="id-title">INCOME TAX DEPARTMENT — PAN CARD</div>
+        <div class="id-field"><span class="id-label">Name:</span> <span class="id-value">SANJAY KUMAR GUPTA</span></div>
+        <div class="id-field"><span class="id-label">Father's Name:</span> <span class="id-value">RAMESH GUPTA</span></div>
+        <div class="id-field"><span class="id-label">PAN:</span> <span class="id-value">BGKPG5678H</span></div>
+        <div class="id-field"><span class="id-label">DOB:</span> <span class="id-value">15/03/1985</span></div>
+      </div>
+
+      <div class="ground-truth">
+        <h4>GROUND TRUTH — Expected Detections (OCR Pipeline)</h4>
+        <ul>
+          <li>aadhaar → "5678 1234 9012" (DOM text + OCR confirmation)</li>
+          <li>panCard → "BGKPG5678H" (DOM text + OCR confirmation)</li>
+          <li>name → "SANJAY KUMAR GUPTA" (near "Name:" label)</li>
+          <li>name → "RAMESH GUPTA" (near "Father's Name:" label)</li>
+          <li>address → "123, Vikas Nagar, Kanpur..." (contains "Nagar")</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ═══════ CARD 5: Hidden/Edge Cases ═══════ -->
+    <div class="card full-width">
+      <div class="card-title">⚠️ Edge Cases & Hidden PII <span class="badge badge-red">HARD CASES</span></div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div>
+          <label>Hidden Password (autocomplete)</label>
+          <input type="password" autocomplete="current-password" value="MyP@ssw0rd!" style="margin-bottom: 8px;">
+
+          <label>SSN-like Number in Paragraph</label>
+          <div class="pii-text" style="font-size: 12px;">
+            Customer reference: Account holder <span class="pii-highlight">Deepak Verma</span>,
+            Account No: <span class="pii-highlight">1234567890123456</span>,
+            IFSC: <span class="pii-highlight">HDFC0001234</span>.
+            Please verify your mobile <span class="pii-highlight">9123456789</span>.
+          </div>
+        </div>
+
+        <div>
+          <label>Tooltip with PII (title attribute)</label>
+          <button class="action-btn" title="Contact: amit.shah@company.com, Ph: +91 8901234567">
+            Hover for Contact Info
+          </button>
+
+          <label style="margin-top: 12px;">Mixed Language Text</label>
+          <div class="pii-text" style="font-size: 12px;">
+            आवेदक: <span class="pii-highlight">राजेश कुमार</span><br>
+            आधार: <span class="pii-highlight">1111 2222 3333</span><br>
+            पता: <span class="pii-highlight">45, गांधी नगर, जयपुर 302015</span>
+          </div>
+        </div>
+
+        <div>
+          <label>Inline Aadhaar (no label context)</label>
+          <p style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
+            Your verification ID <span class="pii-highlight">4444 5555 6666</span> has been confirmed.
+            Card ending <span class="pii-highlight">4532 8723 1098 7654</span> was charged ₹1,299.
+          </p>
+
+          <div class="address-block">
+            <strong>Delivery Address:</strong><br>
+            <span class="pii-highlight">Flat 302, Tower B, Prestige Apartments, Koramangala 5th Block, Bangalore, Karnataka 560095</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ground-truth">
+        <h4>GROUND TRUTH — Expected Detections (Edge Cases)</h4>
+        <ul>
+          <li>password → hidden password field (autocomplete=current-password)</li>
+          <li>name → "Deepak Verma" (near "Account holder" — contextual)</li>
+          <li>ifsc → "HDFC0001234" (near "IFSC:" context)</li>
+          <li>phone → "9123456789" (Indian mobile pattern)</li>
+          <li>aadhaar → "1111 2222 3333" (Hindi text, Aadhaar pattern)</li>
+          <li>aadhaar → "4444 5555 6666" (inline, no label)</li>
+          <li>creditCard → "4532 8723 1098 7654" (Luhn validation required)</li>
+          <li>address → "Flat 302, Tower B, Prestige Apartments..." (contains Flat, Block, Apartments)</li>
+          <li>address → "45, गांधी नगर, जयपुर..." (Hindi, contains नगर)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ═══════ METRICS STRIP ═══════ -->
+    <div class="metrics-strip">
+      <div class="metric-chip" style="border-color: var(--success); color: var(--success);">
+        Total Ground Truth PII: <strong>30+</strong>
+      </div>
+      <div class="metric-chip" style="border-color: var(--accent); color: var(--accent);">
+        Layer 1 (DOM): <strong>20+</strong>
+      </div>
+      <div class="metric-chip" style="border-color: var(--purple); color: var(--purple);">
+        Layer 2 (Faces): <strong>4</strong>
+      </div>
+      <div class="metric-chip" style="border-color: var(--danger); color: var(--danger);">
+        Layer 3 (OCR): <strong>5+</strong>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Log ground truth counts for automated testing
+    console.log('[PrivaPilot Test] Ground truth test page loaded');
+    console.log('[PrivaPilot Test] Expected PII regions: 30+');
+    console.log('[PrivaPilot Test] Expected face regions: 4');
+    console.log('[PrivaPilot Test] Expected OCR regions: 5+');
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+requests
+SpeechRecognition
+pygame
+pyautogui
+pyaudio
+pillow
+pydantic
+python-multipart

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivaPilot — SIH26171 Benchmark Showcase</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card-bg: #131b2e;
+      --border: #23314d;
+      --text: #e2e8f0;
+      --accent: #38bdf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .header {
+      text-align: center;
+      max-width: 800px;
+      margin-bottom: 40px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 1000px;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+    .benchmark-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .benchmark-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+    .icon {
+      font-size: 32px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+    .btn {
+      display: block;
+      text-align: center;
+      background: #0284c7;
+      color: #fff;
+      text-decoration: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #0369a1;
+    }
+    .metrics-table {
+      max-width: 1000px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .metrics-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    td strong {
+      color: var(--success);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="pill">SIH26171 Solution Testbed</div>
+    <h1>PrivaPilot: Privacy-Preserving Vision Agent</h1>
+    <p>
+      Evaluate local client-side PII redaction and autonomous tool calling across real-world sensitive test environments. All PII is dynamically detected and sanitized on-device before visual frames are transmitted to the centralized model.
+    </p>
+  </div>
+
+  <div class="grid">
+    <div class="benchmark-card">
+      <div>
+        <div class="icon">🛒</div>
+        <div class="card-title">1. E-Commerce Checkout</div>
+        <div class="card-desc">Tests redaction of Credit Cards (Luhn algorithm), CVV password mask, phone numbers, and delivery address.</div>
+        <div class="tags">
+          <span class="tag">Credit Card</span>
+          <span class="tag">CVV</span>
+          <span class="tag">Phone</span>
+          <span class="tag">Address</span>
+        </div>
+      </div>
+      <a href="/demo/checkout" class="btn">Open Checkout Scenario →</a>
+    </div>
+
+    <div class="benchmark-card">
+      <div>
+        <div class="icon">🏛️</div>
+        <div class="card-title">2. NetBanking & KYC</div>
+        <div class="card-desc">Tests redaction of Indian Aadhaar (UIDAI 12-digit), PAN Card (10 alphanumeric), account balance, and secret password.</div>
+        <div class="tags">
+          <span class="tag">Aadhaar</span>
+          <span class="tag">PAN Card</span>
+          <span class="tag">Password</span>
+          <span class="tag">Account</span>
+        </div>
+      </div>
+      <a href="/demo/banking" class="btn">Open Banking Scenario →</a>
+    </div>
+
+    <div class="benchmark-card">
+      <div>
+        <div class="icon">👥</div>
+        <div class="card-title">3. Social Profile & Chat</div>
+        <div class="card-desc">Tests client-side visual face & avatar detection, profile blurring, email address masking, and autonomous post creation.</div>
+        <div class="tags">
+          <span class="tag">Face Blur</span>
+          <span class="tag">Avatar</span>
+          <span class="tag">Email</span>
+          <span class="tag">Tool Calling</span>
+        </div>
+      </div>
+      <a href="/demo/social" class="btn">Open Social Scenario →</a>
+    </div>
+  </div>
+
+  <div class="metrics-table">
+    <div class="metrics-title">📊 SIH Evaluation Metric Alignment</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Weight</th>
+          <th>PrivaPilot Target</th>
+          <th>Mechanism</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Accuracy of visual context from screen</td>
+          <td>25%</td>
+          <td><strong>99.8%</strong></td>
+          <td>Lossless canvas scaling, spatial geometry preservation with labeled redaction badges</td>
+        </tr>
+        <tr>
+          <td>Recall & precision for PII detection</td>
+          <td>20%</td>
+          <td><strong>100% Recall</strong></td>
+          <td>Hybrid DOM introspection + regex for Aadhaar, PAN, Card, Email + Client Vision for faces</td>
+        </tr>
+        <tr>
+          <td>Precision of redaction</td>
+          <td>20%</td>
+          <td><strong>99.5%</strong></td>
+          <td>Sub-pixel bounding box alignment directly mapped to viewport CSS layout</td>
+        </tr>
+        <tr>
+          <td>Client-side resource utilization</td>
+          <td>20%</td>
+          <td><strong>< 25MB RAM</strong></td>
+          <td>Hardware-accelerated 2D Canvas & lightweight in-browser JS (no bulky local models)</td>
+        </tr>
+        <tr>
+          <td>End-to-end task latency</td>
+          <td>15%</td>
+          <td><strong>< 30ms Redaction</strong></td>
+          <td>Instant client filter + fast tool calling loop</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
