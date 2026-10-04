@@ -93,54 +93,53 @@ The reasoning engine interacts with web applications through an expressive, type
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Setup & Launch Guide
 
 ### Prerequisites
-- **Python 3.10+** (with pip)
-- **Google Chrome** (v113+ for WebGPU support) or **Microsoft Edge**
+- **Python 3.10+** (with pip added to PATH)
+- **Node.js 18+** (with npm added to PATH)
+- **Google Chrome** (v113+ recommended for WebGPU) or **Microsoft Edge**
 
-### 1. Clone & Install Dependencies
+---
+
+### Step 1: Automated First-Time Setup
+Double-click `start.bat` (or run it from terminal):
 ```bash
-git clone https://github.com/your-username/click.git
-cd click
-
-# Install backend dependencies
-pip install -r backend/requirements.txt
+start.bat
 ```
+> [!NOTE]
+> On the first run, `start.bat` automatically installs all Python dependencies (`requirements.txt`) and Node.js dependencies (`electron`), creating a completely ready-to-run environment without manual setup.
 
-### 2. Configure API Keys
-Copy the example keys template and add your NVIDIA NIM or Google Gemini API key:
-```bash
-# In backend/
-copy api_keys.example.py api_keys.py
-```
-*You can also configure API keys dynamically from the UI settings without modifying code.*
+---
 
-### 3. Launch the Server
-Run the one-click launcher:
-```bash
-start_browser_agent.bat
-```
-*Or start manually via terminal:*
-```bash
-cd backend
-python server.py
-```
-- 📡 **HTTP Server**: `http://127.0.0.1:8765`
-- 🔌 **WebSocket**: `ws://127.0.0.1:8765/ws/browser_agent`
-- 🛒 **Benchmark Showcase**: `http://127.0.0.1:8765/demo/`
+### Step 2: Load the Browser Extension (One-Time Setup)
+1. Open Google Chrome (or Microsoft Edge) and go to:
+   ```text
+   chrome://extensions
+   ```
+2. In the top-right corner, turn **ON** the **Developer mode** toggle.
+3. Click the **Load unpacked** button that appears in the top-left toolbar.
+4. Browse and select the **`browser-extension`** folder inside this project directory.
+5. 📌 **Crucial Step — Pin the Extension**:
+   - Click the puzzle piece icon (**Extensions** 🧩) in the top-right toolbar of Chrome.
+   - Click the **Pin** (📌) icon next to **Click** so the icon remains permanently visible in your browser bar.
 
-### 4. Load the Browser Extension
-1. Open your browser and navigate to `chrome://extensions` (or `edge://extensions`).
-2. Enable **Developer mode** (toggle in the top-right corner).
-3. Click **Load unpacked** and select the `browser-extension` folder in this repository.
-4. Pin the **Click** extension icon to your toolbar.
+---
 
-### 5. Run an Autonomous Task
-1. Click the Click extension icon to open the **Side Panel**.
-2. Select any demo scenario from the benchmark strip (e.g., *E-Commerce Checkout* or *NetBanking & KYC*).
-3. Enter your natural language goal (e.g., *"Select the premium gaming headset and proceed to payment"*).
-4. Watch Click autonomously inspect the screen, sanitize confidential data in real time, and execute the task step-by-step!
+### 🎮 How to Run & Use Click (Two Ways)
+
+Once installed, you can use Click through two flexible workflows:
+
+#### 🌟 Way 1: Run via Desktop App (`start.bat`)
+- Double-click `start.bat`.
+- Automatically initializes the local Python reasoning backend and launches the standalone **Click Desktop Assistant**.
+- Monitor tasks, view live telemetry, configure model keys, and manage automation goals from a sleek desktop window.
+
+#### 🌐 Way 2: Run via Chrome Extension UI (In-Browser Side Panel)
+- Ensure the backend is active (started via `start.bat`).
+- While browsing any website, click the pinned **Click** icon (🖱️) in your Chrome toolbar.
+- The interactive **Side Panel** immediately opens next to your webpage.
+- Type any automation goal (or pick from the pre-packaged demo scenarios) and watch Click sanitize sensitive data on-device before executing tasks step-by-step!
 
 ---
 
@@ -149,7 +148,9 @@ python server.py
 ```
 Click/
 ├── SYSTEM_ARCHITECTURE.md         # Detailed architectural specification (SIH26171)
-├── start_browser_agent.bat        # Automated one-click server & demo launcher
+├── start.bat                      # One-click launcher (installs dependencies, launches backend & desktop app)
+├── start.sh                       # Linux / macOS launcher script
+├── start_browser_agent.bat        # Lightweight browser-only backend launcher
 ├── browser-extension/             # Chrome/Edge Manifest V3 Client Extension
 │   ├── manifest.json              # Extension permissions & entry points
 │   ├── background.js              # Service Worker (WebSocket, tab capture & pipeline)
